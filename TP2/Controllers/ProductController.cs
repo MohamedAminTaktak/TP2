@@ -216,6 +216,7 @@ namespace TP2.Controllers
         }
 
         // Recherche par nom de produit ou nom de catégorie
+        [AllowAnonymous]
         public ActionResult Search(string val)
         {
             var result = ProductRepository.FindByName(val);
