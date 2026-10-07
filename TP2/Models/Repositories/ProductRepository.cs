@@ -1,4 +1,6 @@
-﻿namespace TP2.Models.Repositories
+using Microsoft.EntityFrameworkCore;
+
+namespace TP2.Models.Repositories
 {
     public class ProductRepository : IProductRepository
     {
@@ -48,6 +50,7 @@
                 p1.Price = p.Price;
                 p1.QteStock = p.QteStock;
                 p1.CategoryId = p.CategoryId;
+                p1.Image = p.Image;
                 context.SaveChanges();
             }
             return p1;

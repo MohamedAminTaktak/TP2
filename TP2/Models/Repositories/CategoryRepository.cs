@@ -1,6 +1,6 @@
 ﻿namespace TP2.Models.Repositories
 {
-    public class CategoryRepository : ICategorieRepository
+    public class CategoryRepository : ICategoryRepository
     {
         private readonly AppDbContext context;
 

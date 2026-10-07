@@ -1,0 +1,89 @@
+@model TP2.ViewModels.EditViewModel
+
+@{
+    ViewData["Title"] = "Modifier le produit";
+}
+
+<h1>Modifier le produit</h1>
+
+<h4>Product</h4>
+<hr />
+<div class="row">
+    <div class="col-md-6">
+        @* Formulaire avec enctype multipart pour l'upload de fichier *@
+        <form asp-action="Edit" enctype="multipart/form-data">
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+            @* Champs cachés pour conserver l'id et le chemin de l'image existante *@
+            <input type="hidden" asp-for="ProductId" />
+            <input type="hidden" asp-for="ExistingImagePath" />
+
+            <div class="form-group mb-3">
+                <label asp-for="Name" class="control-label"></label>
+                <input asp-for="Name" class="form-control" />
+                <span asp-validation-for="Name" class="text-danger"></span>
+            </div>
+
+            <div class="form-group mb-3">
+                <label asp-for="Price" class="control-label"></label>
+                <input asp-for="Price" class="form-control" />
+                <span asp-validation-for="Price" class="text-danger"></span>
+            </div>
+
+            <div class="form-group mb-3">
+                <label asp-for="QteStock" class="control-label"></label>
+                <input asp-for="QteStock" class="form-control" />
+                <span asp-validation-for="QteStock" class="text-danger"></span>
+            </div>
+
+            <div class="form-group mb-3">
+                <label asp-for="CategoryId" class="control-label">Catégorie</label>
+                <select asp-for="CategoryId" class="form-control" asp-items="ViewBag.CategoryId">
+                    <option value="">-- Sélectionner une catégorie --</option>
+                </select>
+                <span asp-validation-for="CategoryId" class="text-danger"></span>
+            </div>
+
+            @* Aperçu de l'image actuelle *@
+            <div class="form-group mb-3">
+                <label>Image actuelle :</label>
+                <br />
+                <img id="imageEmp"
+                     src="~/images/@(Model.ExistingImagePath ?? "noimage.jpg")"
+                     width="150" height="150"
+                     alt="Image actuelle"
+                     style="object-fit: contain; border: 1px solid #ddd; border-radius: 5px; padding: 5px;" />
+            </div>
+
+            <div class="form-group mb-3">
+                <label asp-for="ImagePath" class="control-label">Nouvelle image (optionnelle) :</label>
+                <div class="custom-file">
+                    <input asp-for="ImagePath" class="form-control" type="file" id="inputImageEdit" />
+                </div>
+                <span asp-validation-for="ImagePath" class="text-danger"></span>
+            </div>
+
+            <div class="form-group">
+                <input type="submit" value="Update" class="btn btn-primary" />
+                <a asp-action="Index" class="btn btn-secondary ms-2">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    <script>
+        // Aperçu de la nouvelle image sélectionnée via FileReader
+        $(document).ready(function () {
+            $('#inputImageEdit').on('change', function () {
+                var reader = new FileReader();
+                reader.onload = function (e) {
+                    $('#imageEmp').attr('src', e.target.result);
+                };
+                if (this.files && this.files[0]) {
+                    reader.readAsDataURL(this.files[0]);
+                }
+            });
+        });
+    </script>
+}

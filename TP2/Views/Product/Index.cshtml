@@ -1,0 +1,44 @@
+@model IEnumerable<TP2.Models.Product>
+
+@{
+    ViewData["Title"] = "Liste des produits";
+}
+
+<h1>Liste des produits</h1>
+
+<p>
+    <a asp-action="Create" class="btn btn-success">+ Créer un nouveau produit</a>
+</p>
+
+@* Affichage en cartes Bootstrap (card-group) *@
+<div class="card-group">
+    @foreach (var item in Model)
+    {
+        <div class="card m-2" style="min-width: 250px; max-width: 300px;">
+            @* Image du produit *@
+            <img class="card-img-top imageThumbnail"
+                 src="~/images/@(item.Image ?? "noimage.jpg")"
+                 alt="@item.Name" />
+
+            @* En-tête de la carte avec les informations du produit *@
+            <div class="card-header">
+                <h5 class="card-title">@item.Name</h5>
+            </div>
+
+            <div class="card-body">
+                <p class="card-text">
+                    <strong>Prix :</strong> @item.Price DT<br />
+                    <strong>Quantité :</strong> @item.QteStock<br />
+                    <strong>Catégorie :</strong> @item.Category?.CategoryName
+                </p>
+            </div>
+
+            @* Pied de carte avec les boutons d'action *@
+            <div class="card-footer text-center">
+                <a asp-action="Details" asp-route-id="@item.ProductId" class="btn btn-info btn-sm">View</a>
+                <a asp-action="Edit" asp-route-id="@item.ProductId" class="btn btn-warning btn-sm">Edit</a>
+                <a asp-action="Delete" asp-route-id="@item.ProductId" class="btn btn-danger btn-sm">Delete</a>
+            </div>
+        </div>
+    }
+</div>

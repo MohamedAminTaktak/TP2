@@ -1,14 +1,16 @@
+using Microsoft.EntityFrameworkCore;
+using TP2.Models;
+using TP2.Models.Repositories;
+
 var builder = WebApplication.CreateBuilder(args);
 
+// Add services to the container.
 builder.Services.AddControllersWithViews();
-
-// Configuration du fournisseur de BD
 builder.Services.AddDbContextPool<AppDbContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("ProductDBConnection")));
-
-// Injection des dépendances
+options.UseSqlServer(builder.Configuration.GetConnectionString("ProductDBConnection")));
 builder.Services.AddScoped<IProductRepository, ProductRepository>();
-builder.Services.AddScoped<ICategorieRepository, CategoryRepository>();
+builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
+
 
 var app = builder.Build();
 
@@ -21,6 +23,7 @@ if (!app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+app.UseStaticFiles(); // Nécessaire pour servir les images uploadées dans wwwroot/images
 app.UseRouting();
 
 app.UseAuthorization();
