@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
@@ -7,6 +8,7 @@ using TP2.ViewModels;
 
 namespace TP2.Controllers
 {
+    [Authorize(Roles = "Admin,Manager")]
     public class ProductController : Controller
     {
         readonly IProductRepository ProductRepository;
@@ -25,6 +27,7 @@ namespace TP2.Controllers
         }
 
         // GET: ProductController
+        [AllowAnonymous]
         public ActionResult Index()
         {
             var Products = ProductRepository.GetAll();
