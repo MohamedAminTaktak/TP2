@@ -5,14 +5,8 @@ namespace TP2.Models.Help
 {
     public class ListeCart
     {
-        public List<Item> Items { get; private set; }
-        public static readonly ListeCart Instance;
-
-        static ListeCart()
-        {
-            Instance = new ListeCart();
-            Instance.Items = new List<Item>();
-        }
+        public List<Item> Items { get; private set; } = new();
+        public static readonly ListeCart Instance = new();
 
         protected ListeCart() { }
 

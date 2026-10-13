@@ -54,12 +54,14 @@ namespace TP2.Controllers
             {
                 ListeCart.Instance.AddItem(pp);
             }
-            Item trouve = null;
+
+            Item? trouve = null;
             foreach (Item a in ListeCart.Instance.Items)
             {
                 if (pp != null && a.Prod.ProductId == pp.ProductId)
                     trouve = a;
             }
+
             var results = new
             {
                 ct = 1,
@@ -78,12 +80,14 @@ namespace TP2.Controllers
             {
                 ListeCart.Instance.SetLessOneItem(pp);
             }
-            Item trouve = null;
+
+            Item? trouve = null;
             foreach (Item a in ListeCart.Instance.Items)
             {
                 if (pp != null && a.Prod.ProductId == pp.ProductId)
                     trouve = a;
             }
+
             if (trouve != null)
             {
                 var results = new
@@ -95,14 +99,12 @@ namespace TP2.Controllers
                 };
                 return Json(results);
             }
-            else
+
+            var emptyResults = new
             {
-                var results = new
-                {
-                    ct = 0
-                };
-                return Json(results);
-            }
+                ct = 0
+            };
+            return Json(emptyResults);
         }
 
         [HttpPost]
@@ -174,8 +176,8 @@ namespace TP2.Controllers
 
                 var order = new Order
                 {
-                    CustomerName = user.UserName,
-                    Email = user.Email,
+                    CustomerName = user.UserName ?? user.Email ?? "Client",
+                    Email = user.Email ?? string.Empty,
                     Address = model.Address,
                     TotalAmount = model.TotalAmount,
                     OrderDate = DateTime.Now,
@@ -200,6 +202,10 @@ namespace TP2.Controllers
         public IActionResult Confirmation(int orderId)
         {
             var order = orderRepository.GetById(orderId);
+            if (order == null)
+            {
+                return NotFound();
+            }
             return View(order);
         }
     }

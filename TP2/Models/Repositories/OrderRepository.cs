@@ -19,7 +19,7 @@ namespace TP2.Models.Repositories
             context.SaveChanges();
         }
 
-        public Order GetById(int id)
+        public Order? GetById(int id)
         {
             return context.Orders
                 .Include(o => o.Items)

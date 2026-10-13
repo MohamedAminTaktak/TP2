@@ -19,7 +19,7 @@ namespace TP2.Models.Repositories
                 .ToList();
         }
 
-        public Product GetById(int id)
+        public Product? GetById(int id)
         {
             return context.Products
                 .Include(x => x.Category)
@@ -34,16 +34,22 @@ namespace TP2.Models.Repositories
 
         public IList<Product> FindByName(string name)
         {
+            var searchTerm = name?.Trim();
+            if (string.IsNullOrWhiteSpace(searchTerm))
+            {
+                return GetAll();
+            }
+
             return context.Products
                 .Include(p => p.Category)
-                .Where(p => p.Name.Contains(name) ||
-                            p.Category.CategoryName.Contains(name))
+                .Where(p => p.Name.Contains(searchTerm) ||
+                            (p.Category != null && p.Category.CategoryName.Contains(searchTerm)))
                 .ToList();
         }
 
-        public Product Update(Product p)
+        public Product? Update(Product p)
         {
-            Product p1 = context.Products.Find(p.ProductId);
+            Product? p1 = context.Products.Find(p.ProductId);
             if (p1 != null)
             {
                 p1.Name = p.Name;
@@ -58,7 +64,7 @@ namespace TP2.Models.Repositories
 
         public void Delete(int productId)
         {
-            Product p1 = context.Products.Find(productId);
+            Product? p1 = context.Products.Find(productId);
             if (p1 != null)
             {
                 context.Products.Remove(p1);
