@@ -6,6 +6,6 @@ namespace TP2.ViewModels
     {
         [Required]
         [Display(Name = "Role")]
-        public string RoleName { get; set; }
+        public string RoleName { get; set; } = string.Empty;
     }
 }

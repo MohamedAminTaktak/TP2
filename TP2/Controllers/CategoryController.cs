@@ -21,13 +21,14 @@ namespace TP2.Controllers
         public ActionResult Index()
         {
             var Categories = CategRepository.GetAll();
-
+            ViewData["Categories"] = Categories;
             return View(Categories);
         }
 
         // GET: CategoryController/Details/5
         public ActionResult Details(int id)
         {
+            ViewData["Categories"] = CategRepository.GetAll();
             var category = CategRepository.GetById(id);
 
             if (category == null)
@@ -41,6 +42,7 @@ namespace TP2.Controllers
         // GET: CategoryController/Create
         public ActionResult Create()
         {
+            ViewData["Categories"] = CategRepository.GetAll();
             return View();
         }
 
@@ -69,6 +71,7 @@ namespace TP2.Controllers
         // GET: CategoryController/Edit/5
         public ActionResult Edit(int id)
         {
+            ViewData["Categories"] = CategRepository.GetAll();
             var category = CategRepository.GetById(id);
 
             if (category == null)
@@ -114,6 +117,7 @@ namespace TP2.Controllers
         // GET: CategoryController/Delete/5
         public ActionResult Delete(int id)
         {
+            ViewData["Categories"] = CategRepository.GetAll();
             var category = CategRepository.GetById(id);
 
             if (category == null)

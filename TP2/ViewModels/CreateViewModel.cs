@@ -12,7 +12,7 @@ namespace TP2.ViewModels
 
         [Required]
         [StringLength(50, MinimumLength = 5)]
-        public string Name { get; set; }
+        public string Name { get; set; } = string.Empty;
 
         [Required]
         [Display(Name = "Prix en dinar :")]
@@ -29,6 +29,6 @@ namespace TP2.ViewModels
         // Image obligatoire à la création
         [Required]
         [Display(Name = "Image :")]
-        public IFormFile ImagePath { get; set; }
+        public IFormFile ImagePath { get; set; } = null!;
     }
 }

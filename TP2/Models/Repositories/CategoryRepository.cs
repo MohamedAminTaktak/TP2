@@ -16,7 +16,7 @@
                 .ToList();
         }
 
-        public Category GetById(int id)
+        public Category? GetById(int id)
         {
             return context.Categories.Find(id);
         }
@@ -27,9 +27,9 @@
             context.SaveChanges();
         }
 
-        public Category Update(Category c)
+        public Category? Update(Category c)
         {
-            Category c1 = context.Categories.Find(c.CategoryId);
+            Category? c1 = context.Categories.Find(c.CategoryId);
             if (c1 != null)
             {
                 c1.CategoryName = c.CategoryName;
@@ -40,7 +40,7 @@
 
         public void Delete(int categoryId)
         {
-            Category c1 = context.Categories.Find(categoryId);
+            Category? c1 = context.Categories.Find(categoryId);
             if (c1 != null)
             {
                 context.Categories.Remove(c1);

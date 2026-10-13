@@ -1,0 +1,30 @@
+@model TP2.Models.Order
+
+@{
+    ViewData["Title"] = "Confirmation";
+}
+
+<h1>Votre commande a été validée avec succès !</h1>
+<p>Merci pour votre achat, @Model?.CustomerName ! Votre commande a bien été enregistrée.</p>
+<div class="order-details card p-4 shadow-sm">
+    <h2>Récapitulatif de votre commande</h2>
+    <div class="detail-row my-2">
+        <span class="detail-label fw-bold">Numéro de commande :</span>
+        <span class="detail-value">@Model?.Id</span>
+    </div>
+    <div class="detail-row my-2">
+        <span class="detail-label fw-bold">Date :</span>
+        <span class="detail-value">@Model?.OrderDate.ToString("dd/MM/yyyy à HH:mm")</span>
+    </div>
+    <div class="detail-row my-2">
+        <span class="detail-label fw-bold">Montant total :</span>
+        <span class="detail-value">@Model?.TotalAmount DT</span>
+    </div>
+    <div class="detail-row my-2">
+        <span class="detail-label fw-bold">Adresse de livraison :</span>
+        <span class="detail-value">@Model?.Address</span>
+    </div>
+</div>
+<div class="mt-4">
+    <a asp-controller="Product" asp-action="Index" class="btn btn-primary">Continuer vos achats</a>
+</div>

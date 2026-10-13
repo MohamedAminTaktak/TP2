@@ -8,7 +8,7 @@ namespace TP2.Models
 
         [Required]
         [StringLength(50, MinimumLength = 5)]
-        public string Name { get; set; }
+        public string Name { get; set; } = string.Empty;
 
         [Required]
         [Display(Name = "Prix en dinar :")]
@@ -20,10 +20,10 @@ namespace TP2.Models
 
         public int CategoryId { get; set; }
 
-        public Category Category { get; set; }
+        public Category? Category { get; set; }
 
         [Required]
         [Display(Name = "Image :")]
-        public string Image { get; set; }
+        public string Image { get; set; } = string.Empty;
     }
 }
