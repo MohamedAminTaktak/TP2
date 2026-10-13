@@ -1,4 +1,4 @@
-﻿namespace TP2.Models.Repositories
+namespace TP2.Models.Repositories
 {
     public interface IProductRepository
     {
@@ -9,5 +9,6 @@
         void Delete(int Id);
         public IList<Product> GetProductsByCategID(int? CategId);
         public IList<Product> FindByName(string name);
+        public IQueryable<Product> GetAllProducts();
     }
 }

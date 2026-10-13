@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
+
 namespace TP2.ViewModels
 {
     public class LoginViewModel
