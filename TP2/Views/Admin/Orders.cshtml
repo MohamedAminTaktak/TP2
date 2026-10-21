@@ -1,0 +1,111 @@
+@model IList<TP2.Models.Order>
+@{
+    ViewData["Title"] = "Gestion des Commandes";
+    ViewData["HideSidebar"] = true;
+    var statusList = new[] { "En attente", "Expédiée", "Livrée", "Annulée" };
+}
+
+<div class="py-2">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb py-2 px-3 bg-white rounded-3 border small">
+            <li class="breadcrumb-item"><a asp-controller="Home" asp-action="Index">Accueil</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Administration des Commandes</li>
+        </ol>
+    </nav>
+
+    <div class="d-flex align-items-center justify-content-between mb-4 pb-2 border-bottom flex-wrap gap-2">
+        <div>
+            <h1 class="h3 fw-bold mb-1">
+                <i class="bi bi-receipt text-primary me-2"></i>Gestion des Commandes Clients
+            </h1>
+            <p class="text-muted small mb-0">Total de <strong>@Model.Count</strong> commande(s) enregistrée(s).</p>
+        </div>
+        <div class="d-flex gap-2">
+            <a asp-action="ListRoles" class="btn btn-sm btn-outline-secondary">
+                <i class="bi bi-people me-1"></i> Rôles
+            </a>
+            <a asp-controller="Product" asp-action="Index" class="btn btn-sm btn-outline-primary">
+                <i class="bi bi-boxes me-1"></i> Produits
+            </a>
+        </div>
+    </div>
+
+    @if (Model != null && Model.Any())
+    {
+        <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th class="ps-4"># Commande</th>
+                            <th>Client</th>
+                            <th>Date</th>
+                            <th>Articles</th>
+                            <th class="text-end">Montant Total</th>
+                            <th>Paiement</th>
+                            <th style="min-width: 220px;">Statut & Modification</th>
+                            <th class="text-end pe-4">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var order in Model)
+                        {
+                            string badgeClass = order.Status switch
+                            {
+                                "Expédiée" => "bg-primary-subtle text-primary",
+                                "Livrée" => "bg-success-subtle text-success",
+                                "Annulée" => "bg-danger-subtle text-danger",
+                                _ => "bg-warning-subtle text-warning-emphasis"
+                            };
+
+                            <tr>
+                                <td class="ps-4 fw-bold">#@order.Id</td>
+                                <td>
+                                    <div class="fw-semibold">@order.CustomerName</div>
+                                    <div class="small text-muted text-truncate" style="max-width: 180px;">@order.Email</div>
+                                </td>
+                                <td class="small text-muted">@order.OrderDate.ToString("dd/MM/yyyy HH:mm")</td>
+                                <td>
+                                    <span class="badge bg-light text-dark border">
+                                        @order.Items.Sum(i => i.Quantity) art.
+                                    </span>
+                                </td>
+                                <td class="text-end fw-bold text-primary font-poppins">@order.TotalAmount.ToString("N2") DT</td>
+                                <td class="small text-muted">@order.PaymentMethod</td>
+                                <td>
+                                    <form asp-action="UpdateOrderStatus" method="post" class="d-flex align-items-center gap-1 mb-0">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="id" value="@order.Id" />
+                                        <select name="status" class="form-select form-select-sm" style="font-size: 0.8rem; border-radius: var(--radius-btn);">
+                                            @foreach (var st in statusList)
+                                            {
+                                                <option value="@st" selected="@(order.Status == st)">@st</option>
+                                            }
+                                        </select>
+                                        <button type="submit" class="btn btn-sm btn-primary py-1 px-2" title="Mettre à jour le statut">
+                                            <i class="bi bi-check2"></i>
+                                        </button>
+                                    </form>
+                                </td>
+                                <td class="text-end pe-4">
+                                    <a asp-action="OrderDetails" asp-route-id="@order.Id" class="btn btn-sm btn-outline-primary" title="Voir les détails complets">
+                                        <i class="bi bi-eye"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="text-center py-5 px-3 bg-white rounded-4 border shadow-sm my-4">
+            <i class="bi bi-inbox text-muted display-4 mb-3 d-block"></i>
+            <h4 class="fw-bold mb-2">Aucune commande enregistrée pour le moment</h4>
+            <p class="text-muted">Les commandes passées par les clients apparaîtront ici.</p>
+        </div>
+    }
+</div>

@@ -1,54 +1,167 @@
-@model IEnumerable<TP2.Models.Product>
-
+@model TP2.ViewModels.ProduitPaginationViewModel
 @{
-    ViewData["Title"] = "Liste des produits";
+    ViewData["Title"] = "Nos Produits";
 }
 
-<h1>Liste des produits</h1>
+<!-- ── Page Header ───────────────────────────────────────────── -->
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 mb-4 pb-2 border-bottom">
+    <div>
+        <h1 class="h3 fw-bold mb-1">
+            @(string.IsNullOrWhiteSpace(Model.CategoryName) ? "Tous les produits" : Model.CategoryName)
+        </h1>
+        <p class="text-muted small mb-0">
+            @if (Model.TotalItems == 0)
+            {
+                <span>Aucun produit trouvé</span>
+            }
+            else
+            {
+                <span>Affichage de <strong>@Model.FirstItem</strong> à <strong>@Model.LastItem</strong> sur <strong>@Model.TotalItems</strong> produit(s)</span>
+            }
+        </p>
+    </div>
 
-<p>
-    <a asp-action="Create" class="btn btn-success">+ Créer un nouveau produit</a>
-</p>
+    <div class="d-flex align-items-center gap-2 flex-wrap w-100 w-md-auto justify-content-end">
+        @if (User.IsInRole("Admin") || User.IsInRole("Manager"))
+        {
+            <a asp-action="Create" class="btn btn-sm btn-primary">
+                <i class="bi bi-plus-circle"></i> Nouveau Produit
+            </a>
+        }
 
-@* Affichage en cartes Bootstrap (card-group) *@
-<div class="card-group">
-    @foreach (var item in Model)
-    {
-        <div class="card m-2" style="min-width: 250px; max-width: 300px;">
-            @* Image du produit *@
-            <img class="card-img-top imageThumbnail"
-                 src="~/images/@(item.Image ?? "noimage.jpg")"
-                 alt="@item.Name" />
+        <!-- Sort Dropdown -->
+        <form method="get" class="d-flex align-items-center gap-2 mb-0">
+            @if (Model.CategoryId.HasValue)
+            {
+                <input type="hidden" name="categoryId" value="@Model.CategoryId.Value" />
+            }
+            @if (!string.IsNullOrWhiteSpace(Model.SearchTerm))
+            {
+                <input type="hidden" name="search" value="@Model.SearchTerm" />
+            }
 
-            @* En-tête de la carte avec les informations du produit *@
-            <div class="card-header">
-                <h5 class="card-title">@item.Name</h5>
-            </div>
-
-            <div class="card-body">
-                <p class="card-text">
-                    <strong>Prix :</strong> @item.Price DT<br />
-                    <strong>Quantité :</strong> @item.QteStock<br />
-                    <strong>Catégorie :</strong> @item.Category?.CategoryName
-                </p>
-            </div>
-
-            @* Pied de carte avec les boutons d'action *@
-            <div class="card-footer text-center">
-                <a asp-action="Details" asp-route-id="@item.ProductId" class="btn btn-info btn-sm">Détails</a>
-                <a asp-controller="Panier" asp-action="AddProduct" class="btn btn-outline-secondary btn-sm" asp-route-id="@item.ProductId">Ajouter Au Panier</a>
-            </div>
-        </div>
-    }
+            <label for="sortSelect" class="small text-muted fw-bold text-nowrap d-none d-sm-inline">Trier par :</label>
+            <select name="sortBy" id="sortSelect" class="form-select form-select-sm" style="border-radius: var(--radius-btn); min-width: 175px;" onchange="this.form.submit()">
+                <option value="name_asc" selected="@(string.IsNullOrEmpty(Model.SortBy) || Model.SortBy == "name_asc")">Nom : A → Z</option>
+                <option value="price_asc" selected="@(Model.SortBy == "price_asc")">Prix : Moins cher ↑</option>
+                <option value="price_desc" selected="@(Model.SortBy == "price_desc")">Prix : Plus cher ↓</option>
+                <option value="recent" selected="@(Model.SortBy == "recent")">Plus récent</option>
+            </select>
+        </form>
+    </div>
 </div>
 
-<!-- Pagination -->
-<div class="pagination">
-    @for (int i = 1; i <= ViewBag.TotalPages; i++)
-    {
-        <a asp-action="Index" asp-route-categoryId="@ViewBag.CategoryId"
-           asp-route-page="@i" class="btn btn-secondary m-1">
-            @i
+<!-- ── Active Filter Chips ────────────────────────────────────── -->
+@if (Model.CategoryId.HasValue || !string.IsNullOrWhiteSpace(Model.SearchTerm))
+{
+    <div class="d-flex align-items-center gap-2 flex-wrap mb-4">
+        <span class="text-muted small fw-bold">Filtres actifs :</span>
+
+        @if (Model.CategoryId.HasValue)
+        {
+            <div class="filter-chip">
+                <span>Catégorie : <strong>@Model.CategoryName</strong></span>
+                <a asp-action="Index" 
+                   asp-route-search="@Model.SearchTerm" 
+                   asp-route-sortBy="@Model.SortBy" 
+                   title="Retirer le filtre de catégorie" aria-label="Retirer catégorie">
+                    <i class="bi bi-x-circle-fill"></i>
+                </a>
+            </div>
+        }
+
+        @if (!string.IsNullOrWhiteSpace(Model.SearchTerm))
+        {
+            <div class="filter-chip">
+                <span>Recherche : <strong>« @Model.SearchTerm »</strong></span>
+                <a asp-action="Index" 
+                   asp-route-categoryId="@Model.CategoryId" 
+                   asp-route-sortBy="@Model.SortBy" 
+                   title="Retirer la recherche" aria-label="Retirer recherche">
+                    <i class="bi bi-x-circle-fill"></i>
+                </a>
+            </div>
+        }
+
+        <a asp-action="Index" class="btn btn-sm btn-link text-danger p-0 text-decoration-none small ms-2">
+            Réinitialiser tout
         </a>
+    </div>
+}
+
+<!-- ── Product Grid or Empty State ────────────────────────────── -->
+@if (Model.Products != null && Model.Products.Any())
+{
+    <div class="row row-cols-1 row-cols-sm-2 row-cols-lg-3 row-cols-xl-4 g-3 g-lg-4 mb-4">
+        @foreach (var product in Model.Products)
+        {
+            <partial name="_ProductCard" model="product" />
+        }
+    </div>
+
+    <!-- ── Pagination ─────────────────────────────────────────── -->
+    @if (Model.TotalPages > 1)
+    {
+        <nav aria-label="Pagination des produits" class="mt-4 pt-2">
+            <ul class="pagination justify-content-center flex-wrap">
+                <!-- Page précédente -->
+                <li class="page-item @(Model.PageActuelle <= 1 ? "disabled" : "")">
+                    <a class="page-link" asp-action="Index"
+                       asp-route-page="@(Model.PageActuelle - 1)"
+                       asp-route-categoryId="@Model.CategoryId"
+                       asp-route-search="@Model.SearchTerm"
+                       asp-route-sortBy="@Model.SortBy"
+                       aria-label="Précédent">
+                        <i class="bi bi-chevron-left"></i>
+                    </a>
+                </li>
+
+                <!-- Numéros de page -->
+                @for (int i = 1; i <= Model.TotalPages; i++)
+                {
+                    <li class="page-item @(i == Model.PageActuelle ? "active" : "")">
+                        <a class="page-link" asp-action="Index"
+                           asp-route-page="@i"
+                           asp-route-categoryId="@Model.CategoryId"
+                           asp-route-search="@Model.SearchTerm"
+                           asp-route-sortBy="@Model.SortBy">
+                            @i
+                        </a>
+                    </li>
+                }
+
+                <!-- Page suivante -->
+                <li class="page-item @(Model.PageActuelle >= Model.TotalPages ? "disabled" : "")">
+                    <a class="page-link" asp-action="Index"
+                       asp-route-page="@(Model.PageActuelle + 1)"
+                       asp-route-categoryId="@Model.CategoryId"
+                       asp-route-search="@Model.SearchTerm"
+                       asp-route-sortBy="@Model.SortBy"
+                       aria-label="Suivant">
+                        <i class="bi bi-chevron-right"></i>
+                    </a>
+                </li>
+            </ul>
+        </nav>
     }
-</div>
+}
+else
+{
+    <!-- Friendly Empty State -->
+    <div class="text-center py-5 px-3 bg-white rounded-3 border my-4">
+        <div class="mb-3">
+            <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="#6b7280" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="mx-auto">
+                <circle cx="11" cy="11" r="8"></circle>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                <line x1="8" y1="11" x2="14" y2="11"></line>
+            </svg>
+        </div>
+        <h4 class="fw-bold mb-2">Aucun produit ne correspond à votre recherche</h4>
+        <p class="text-muted mb-4" style="max-width: 460px; margin: 0 auto;">
+            Essayez de modifier vos critères de recherche ou de retirer certains filtres pour explorer l'ensemble de notre catalogue.
+        </p>
+        <a asp-action="Index" class="btn btn-primary">
+            <i class="bi bi-arrow-repeat me-1"></i> Réinitialiser les filtres
+        </a>
+    </div>
+}

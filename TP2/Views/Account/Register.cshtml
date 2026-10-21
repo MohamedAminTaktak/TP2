@@ -1,38 +1,89 @@
 @model TP2.ViewModels.RegisterViewModel
-
 @{
-    ViewBag.Title = "User Registration";
+    ViewData["Title"] = "Inscription";
+    ViewData["HideSidebar"] = true;
+    var returnUrl = Context.Request.Query["returnUrl"].ToString();
 }
-<h1>User Registration</h1>
-<hr />
-<div class="row">
-    <div class="col-md-4">
-        <form method="post">
 
-            <div asp-validation-summary="All" class="text-danger"></div>
+<div class="auth-wrapper">
+    <div class="auth-card">
+        <!-- Brand Icon -->
+        <div class="text-center mb-4">
+            <div class="brand-icon mx-auto mb-2" style="width:48px;height:48px;font-size:1.5rem;background:var(--color-primary);color:#fff;border-radius:12px;display:flex;align-items:center;justify-content:center;">
+                <i class="bi bi-person-plus-fill"></i>
+            </div>
+            <h1 class="h4 fw-bold text-ink mb-1">Créer un compte</h1>
+            <p class="text-muted small">Rejoignez TP2 Shop et commencez vos courses en toute simplicité</p>
+        </div>
 
-            <div class="form-group">
-                <label asp-for="Email" class="control-label"></label>
-                <input asp-for="Email" class="form-control" />
-                <span asp-validation-for="Email" class="text-danger"></span>
+        <form asp-action="Register" asp-route-returnurl="@returnUrl" method="post">
+            @Html.AntiForgeryToken()
+
+            <div asp-validation-summary="ModelOnly" class="alert alert-danger small py-2" role="alert"></div>
+
+            <!-- Email -->
+            <div class="form-floating mb-3">
+                <input asp-for="Email" class="form-control" placeholder="nom@exemple.com" required autocomplete="username" />
+                <label asp-for="Email">Adresse e-mail</label>
+                <span asp-validation-for="Email" class="text-danger small"></span>
             </div>
 
-            <div class="form-group">
-                <label asp-for="Password" class="control-label"></label>
-                <input asp-for="Password" class="form-control" />
-                <span asp-validation-for="Password" class="text-danger"></span>
+            <!-- Password -->
+            <div class="position-relative mb-3">
+                <div class="form-floating">
+                    <input asp-for="Password" class="form-control" id="regPasswordInput" placeholder="Mot de passe" required autocomplete="new-password" />
+                    <label asp-for="Password">Mot de passe (min. 6 caractères)</label>
+                </div>
+                <button type="button" class="btn btn-sm btn-link text-muted position-absolute end-0 top-50 translate-middle-y me-2 text-decoration-none" 
+                        onclick="togglePasswordVisibility('regPasswordInput', this)" aria-label="Afficher ou masquer le mot de passe">
+                    <i class="bi bi-eye fs-5"></i>
+                </button>
+                <span asp-validation-for="Password" class="text-danger small"></span>
             </div>
 
-            <div class="form-group">
-                <label asp-for="ConfirmPassword" class="control-label"></label>
-                <input asp-for="ConfirmPassword" class="form-control" />
-                <span asp-validation-for="ConfirmPassword" class="text-danger"></span>
+            <!-- Confirm Password -->
+            <div class="position-relative mb-4">
+                <div class="form-floating">
+                    <input asp-for="ConfirmPassword" class="form-control" id="regConfirmPasswordInput" placeholder="Confirmez le mot de passe" required autocomplete="new-password" />
+                    <label asp-for="ConfirmPassword">Confirmer le mot de passe</label>
+                </div>
+                <button type="button" class="btn btn-sm btn-link text-muted position-absolute end-0 top-50 translate-middle-y me-2 text-decoration-none" 
+                        onclick="togglePasswordVisibility('regConfirmPasswordInput', this)" aria-label="Afficher ou masquer le mot de passe">
+                    <i class="bi bi-eye fs-5"></i>
+                </button>
+                <span asp-validation-for="ConfirmPassword" class="text-danger small"></span>
             </div>
 
-            <div class="form-group">
-                <input type="submit" value="Register" class="btn btn-primary" />
-            </div>
+            <!-- Submit Button -->
+            <button type="submit" class="btn btn-primary w-100 py-2 fs-6 mb-3">
+                <i class="bi bi-check-circle-fill me-1"></i> Créer mon compte
+            </button>
 
+            <!-- Link to Login -->
+            <div class="text-center small text-muted">
+                Vous avez déjà un compte ?
+                <a asp-action="Login" asp-route-returnurl="@returnUrl" class="fw-bold text-primary text-decoration-none ms-1">
+                    Se connecter
+                </a>
+            </div>
         </form>
     </div>
 </div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        function togglePasswordVisibility(inputId, btn) {
+            var input = document.getElementById(inputId);
+            if (!input) return;
+            var icon = btn.querySelector('i');
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.className = 'bi bi-eye-slash fs-5';
+            } else {
+                input.type = 'password';
+                icon.className = 'bi bi-eye fs-5';
+            }
+        }
+    </script>
+}

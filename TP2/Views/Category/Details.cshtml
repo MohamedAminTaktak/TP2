@@ -1,31 +1,50 @@
 @model TP2.Models.Category
-
 @{
-    ViewData["Title"] = "Details";
+    ViewData["Title"] = $"Détails {Model.CategoryName}";
+    int prodCount = Model.Products?.Count ?? 0;
 }
 
-<h1>Details</h1>
+<div class="py-2">
+    <!-- Page Header -->
+    <div class="d-flex align-items-center justify-content-between mb-4 pb-2 border-bottom flex-wrap gap-2">
+        <div>
+            <h1 class="h3 fw-bold mb-1">
+                <i class="bi bi-tag text-primary me-2"></i>Détails de la Catégorie
+            </h1>
+            <p class="text-muted small mb-0">Informations sur le rayon #@Model.CategoryId</p>
+        </div>
+        <a asp-action="Index" class="btn btn-sm btn-outline-secondary">
+            <i class="bi bi-arrow-left me-1"></i> Retour à la liste
+        </a>
+    </div>
 
-<div>
-    <h4>Category</h4>
-    <hr />
-    <dl class="row">
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.CategoryName)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.CategoryName)
-        </dd>
-    </dl>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.Products)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.Products)
-        </dd>
-    </dl>
-</div>
-<div>
-    <a asp-action="Edit" asp-route-id="@Model?.CategoryId">Edit</a> |
-    <a asp-action="Index">Back to List</a>
+    <div class="row justify-content-center">
+        <div class="col-lg-6">
+            <div class="card border-0 shadow-sm rounded-4 p-4 p-md-5">
+                <div class="mb-4">
+                    <span class="text-muted small">Nom du rayon</span>
+                    <h3 class="fw-bold text-dark mt-1">@Model.CategoryName</h3>
+                </div>
+
+                <div class="p-3 bg-light rounded-3 mb-4 d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="text-muted small">Nombre de produits rattachés</div>
+                        <div class="fs-4 fw-bold text-primary font-poppins">@prodCount</div>
+                    </div>
+                    <a asp-controller="Product" asp-action="Index" asp-route-categoryId="@Model.CategoryId" class="btn btn-sm btn-outline-primary">
+                        <i class="bi bi-box-seam me-1"></i> Voir les produits
+                    </a>
+                </div>
+
+                <div class="d-flex align-items-center gap-2 pt-2">
+                    <a asp-action="Edit" asp-route-id="@Model.CategoryId" class="btn btn-primary px-4">
+                        <i class="bi bi-pencil me-1"></i> Modifier
+                    </a>
+                    <a asp-action="Index" class="btn btn-outline-secondary px-4">
+                        Retour
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>

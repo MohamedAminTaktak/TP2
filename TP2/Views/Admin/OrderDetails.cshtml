@@ -1,0 +1,142 @@
+@model TP2.Models.Order
+@{
+    ViewData["Title"] = $"Détail Commande Admin #{Model.Id}";
+    ViewData["HideSidebar"] = true;
+    var statusList = new[] { "En attente", "Expédiée", "Livrée", "Annulée" };
+
+    string badgeClass = Model.Status switch
+    {
+        "Expédiée" => "bg-primary-subtle text-primary",
+        "Livrée" => "bg-success-subtle text-success",
+        "Annulée" => "bg-danger-subtle text-danger",
+        _ => "bg-warning-subtle text-warning-emphasis"
+    };
+}
+
+<div class="py-2">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb py-2 px-3 bg-white rounded-3 border small">
+            <li class="breadcrumb-item"><a asp-controller="Home" asp-action="Index">Accueil</a></li>
+            <li class="breadcrumb-item"><a asp-action="Orders">Commandes</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Commande #@Model.Id</li>
+        </ol>
+    </nav>
+
+    <div class="d-flex align-items-center justify-content-between mb-4 pb-2 border-bottom flex-wrap gap-2">
+        <div>
+            <div class="d-flex align-items-center gap-2 mb-1">
+                <h1 class="h3 fw-bold mb-0">Commande #@Model.Id</h1>
+                <span class="badge @badgeClass fw-bold px-3 py-1">@Model.Status</span>
+            </div>
+            <p class="text-muted small mb-0">Enregistrée le @Model.OrderDate.ToString("dd MMMM yyyy à HH:mm")</p>
+        </div>
+        <a asp-action="Orders" class="btn btn-sm btn-outline-secondary">
+            <i class="bi bi-arrow-left me-1"></i> Retour aux commandes
+        </a>
+    </div>
+
+    <div class="row g-4">
+        <!-- Left: Items -->
+        <div class="col-lg-8">
+            <div class="card border-0 shadow-sm rounded-4 p-4 mb-4">
+                <h5 class="fw-bold mb-3">Articles commandés</h5>
+                <div class="table-responsive">
+                    <table class="table align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Produit</th>
+                                <th class="text-center">Quantité</th>
+                                <th class="text-end">Prix unitaire</th>
+                                <th class="text-end">Total</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var item in Model.Items)
+                            {
+                                <tr>
+                                    <td>
+                                        <div class="fw-semibold">@item.ProductName</div>
+                                        @if (item.ProductId.HasValue)
+                                        {
+                                            <span class="small text-muted">ID Produit : @item.ProductId.Value</span>
+                                        }
+                                    </td>
+                                    <td class="text-center fw-bold">@item.Quantity</td>
+                                    <td class="text-end text-muted">@item.Price.ToString("N2") DT</td>
+                                    <td class="text-end fw-bold text-dark">@((item.Quantity * item.Price).ToString("N2")) DT</td>
+                                </tr>
+                            }
+                        </tbody>
+                        <tfoot>
+                            <tr>
+                                <th colspan="3" class="text-end pt-3">Frais de livraison :</th>
+                                <td class="text-end pt-3 text-success fw-bold">Gratuit</td>
+                            </tr>
+                            <tr>
+                                <th colspan="3" class="text-end fs-5 fw-bold border-0">Total Commande :</th>
+                                <td class="text-end fs-5 fw-bold text-primary border-0 font-poppins">@Model.TotalAmount.ToString("N2") DT</td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right: Status Update & Client Details -->
+        <div class="col-lg-4">
+            <!-- Status Update Box -->
+            <div class="card border-0 shadow-sm rounded-4 p-4 mb-4 bg-light border">
+                <h5 class="fw-bold mb-3 d-flex align-items-center gap-2">
+                    <i class="bi bi-gear-fill text-primary"></i> Modifier le statut
+                </h5>
+                <form asp-action="UpdateOrderStatus" method="post">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="id" value="@Model.Id" />
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">Statut de la commande</label>
+                        <select name="status" class="form-select">
+                            @foreach (var st in statusList)
+                            {
+                                <option value="@st" selected="@(Model.Status == st)">@st</option>
+                            }
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="bi bi-save me-1"></i> Enregistrer le statut
+                    </button>
+                </form>
+            </div>
+
+            <!-- Client & Delivery Details -->
+            <div class="card border-0 shadow-sm rounded-4 p-4">
+                <h5 class="fw-bold mb-3 d-flex align-items-center gap-2">
+                    <i class="bi bi-person-circle text-primary"></i> Client & Livraison
+                </h5>
+                <div class="mb-3">
+                    <div class="text-muted small">Nom du client</div>
+                    <div class="fw-bold text-dark">@Model.CustomerName</div>
+                </div>
+                <div class="mb-3">
+                    <div class="text-muted small">E-mail</div>
+                    <div class="fw-semibold text-dark">@Model.Email</div>
+                </div>
+                <div class="mb-3">
+                    <div class="text-muted small">Adresse complète</div>
+                    <div class="fw-semibold text-dark">@Model.Address</div>
+                </div>
+                @if (!string.IsNullOrEmpty(Model.Phone))
+                {
+                    <div class="mb-3">
+                        <div class="text-muted small">Téléphone</div>
+                        <div class="fw-semibold text-dark">@Model.Phone</div>
+                    </div>
+                }
+                <div>
+                    <div class="text-muted small">Mode de paiement</div>
+                    <div class="fw-bold text-dark">@Model.PaymentMethod</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

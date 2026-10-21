@@ -2,6 +2,9 @@ using TP2.Models;
 
 namespace TP2.Models.Help
 {
+    /// <summary>
+    /// Représente une ligne du panier (un produit + sa quantité).
+    /// </summary>
     public class Item
     {
         public int quantite { get; set; }
@@ -15,17 +18,17 @@ namespace TP2.Models.Help
 
         public string Description => _product.Name;
 
-        public float UnitPrice => _product.Price;
+        public decimal UnitPrice => _product.Price;
 
-        public int categoryId => _product.CategoryId;
+        public int CategoryId => _product.CategoryId;
 
-        public Category? category => _product.Category;
+        public Category? Category => _product.Category;
 
-        public float TotalPrice => _product.Price * quantite;
+        public decimal TotalPrice => _product.Price * quantite;
 
         public Item(Product p)
         {
-            Prod = p;
+            _product = p ?? throw new ArgumentNullException(nameof(p));
         }
 
         public bool Equals(Item item)

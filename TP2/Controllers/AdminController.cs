@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using TP2.Models.Repositories;
 using TP2.ViewModels;
 
 namespace TP2.Controllers
@@ -10,12 +11,15 @@ namespace TP2.Controllers
     {
         private readonly RoleManager<IdentityRole> roleManager;
         private readonly UserManager<IdentityUser> userManager;
+        private readonly IOrderRepository orderRepository;
 
         public AdminController(RoleManager<IdentityRole> roleManager,
-                               UserManager<IdentityUser> userManager)
+                               UserManager<IdentityUser> userManager,
+                               IOrderRepository orderRepository)
         {
             this.roleManager = roleManager;
             this.userManager = userManager;
+            this.orderRepository = orderRepository;
         }
 
         [HttpGet]
@@ -51,6 +55,35 @@ namespace TP2.Controllers
         {
             var roles = roleManager.Roles;
             return View(roles);
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> DeleteRole(string id)
+        {
+            var role = await roleManager.FindByIdAsync(id);
+            if (role == null)
+            {
+                return NotFound();
+            }
+
+            if (role.Name == "Admin")
+            {
+                TempData["ToastError"] = "Le rôle 'Admin' principal ne peut pas être supprimé.";
+                return RedirectToAction(nameof(ListRoles));
+            }
+
+            var result = await roleManager.DeleteAsync(role);
+            if (result.Succeeded)
+            {
+                TempData["ToastSuccess"] = $"Le rôle « {role.Name} » a été supprimé avec succès.";
+            }
+            else
+            {
+                TempData["ToastError"] = "Erreur lors de la suppression du rôle.";
+            }
+
+            return RedirectToAction(nameof(ListRoles));
         }
 
         // Role ID is passed from the URL to the action
@@ -114,34 +147,6 @@ namespace TP2.Controllers
                 }
 
                 return View(model);
-            }
-        }
-
-        [HttpPost]
-        public async Task<IActionResult> DeleteRole(string id)
-        {
-            var role = await roleManager.FindByIdAsync(id);
-
-            if (role == null)
-            {
-                ViewBag.ErrorMessage = $"Role with Id = {id} cannot be found";
-                return View("NotFound");
-            }
-            else
-            {
-                var result = await roleManager.DeleteAsync(role);
-
-                if (result.Succeeded)
-                {
-                    return RedirectToAction("ListRoles");
-                }
-
-                foreach (var error in result.Errors)
-                {
-                    ModelState.AddModelError("", error.Description);
-                }
-
-                return View("ListRoles");
             }
         }
 
@@ -225,6 +230,51 @@ namespace TP2.Controllers
             }
 
             return RedirectToAction("EditRole", new { Id = roleId });
+        }
+
+        // GET: /Admin/Orders
+        [HttpGet]
+        public IActionResult Orders()
+        {
+            var orders = orderRepository.GetAll();
+            return View(orders);
+        }
+
+        // POST: /Admin/UpdateOrderStatus
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public IActionResult UpdateOrderStatus(int id, string status)
+        {
+            var validStatuses = new[] { "En attente", "Expédiée", "Livrée", "Annulée" };
+            if (!validStatuses.Contains(status))
+            {
+                TempData["ToastError"] = "Statut invalide.";
+                return RedirectToAction(nameof(Orders));
+            }
+
+            var order = orderRepository.GetById(id);
+            if (order == null)
+            {
+                return NotFound();
+            }
+
+            order.Status = status;
+            orderRepository.Update(order);
+            TempData["ToastSuccess"] = $"Le statut de la commande #{order.Id} a été mis à jour ({status}).";
+
+            return RedirectToAction(nameof(Orders));
+        }
+
+        // GET: /Admin/OrderDetails/5
+        [HttpGet]
+        public IActionResult OrderDetails(int id)
+        {
+            var order = orderRepository.GetById(id);
+            if (order == null)
+            {
+                return NotFound();
+            }
+            return View(order);
         }
     }
 }

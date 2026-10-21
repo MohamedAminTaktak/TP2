@@ -1,30 +1,114 @@
 @model TP2.Models.Order
-
 @{
-    ViewData["Title"] = "Confirmation";
+    ViewData["Title"] = "Commande confirmée";
+    ViewData["HideSidebar"] = true;
 }
 
-<h1>Votre commande a été validée avec succès !</h1>
-<p>Merci pour votre achat, @Model?.CustomerName ! Votre commande a bien été enregistrée.</p>
-<div class="order-details card p-4 shadow-sm">
-    <h2>Récapitulatif de votre commande</h2>
-    <div class="detail-row my-2">
-        <span class="detail-label fw-bold">Numéro de commande :</span>
-        <span class="detail-value">@Model?.Id</span>
+<div class="row justify-content-center py-4">
+    <div class="col-lg-8 col-xl-7">
+        <div class="card border-0 shadow-sm rounded-4 p-4 p-md-5 text-center">
+            
+            <!-- Animated Check Icon -->
+            <div class="mb-4 d-inline-flex align-items-center justify-content-center mx-auto" 
+                 style="width: 80px; height: 80px; border-radius: 50%; background: #e6f6f3; color: #0f9d8a;">
+                <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                    <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                </svg>
+            </div>
+
+            <span class="badge bg-success-subtle text-success fw-bold px-3 py-2 rounded-pill mx-auto mb-2">
+                Commande validée avec succès
+            </span>
+            <h1 class="h2 fw-bold text-ink mb-2">Merci pour votre commande !</h1>
+            <p class="text-muted mb-4">
+                Votre commande <strong>#@Model.Id</strong> a bien été enregistrée et est en cours de préparation par notre équipe logistique.
+            </p>
+
+            <!-- Order Information Card -->
+            <div class="bg-light rounded-4 p-4 text-start mb-4 border">
+                <div class="row g-3">
+                    <div class="col-sm-6">
+                        <div class="text-muted small">Numéro de commande</div>
+                        <div class="fw-bold fs-6 text-dark">#@Model.Id</div>
+                    </div>
+                    <div class="col-sm-6">
+                        <div class="text-muted small">Date et heure</div>
+                        <div class="fw-bold fs-6 text-dark">@Model.OrderDate.ToString("dd MMMM yyyy à HH:mm")</div>
+                    </div>
+                    <div class="col-sm-6">
+                        <div class="text-muted small">Mode de paiement</div>
+                        <div class="fw-bold fs-6 text-dark">
+                            <i class="bi bi-credit-card me-1 text-primary"></i> @Model.PaymentMethod
+                        </div>
+                    </div>
+                    <div class="col-sm-6">
+                        <div class="text-muted small">Statut actuel</div>
+                        <div>
+                            <span class="badge bg-info-subtle text-info-emphasis fw-bold">@Model.Status</span>
+                        </div>
+                    </div>
+                    <div class="col-12 border-top pt-2 mt-2">
+                        <div class="text-muted small">Adresse de livraison</div>
+                        <div class="fw-semibold text-dark">
+                            <i class="bi bi-geo-alt me-1 text-danger"></i> @Model.Address
+                            @if (!string.IsNullOrEmpty(Model.Phone))
+                            {
+                                <span class="text-muted ms-2">(Tél : @Model.Phone)</span>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Items Table -->
+            <div class="text-start mb-4">
+                <h5 class="fw-bold mb-3">Détail des articles</h5>
+                <div class="table-responsive">
+                    <table class="table align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Produit</th>
+                                <th class="text-center">Quantité</th>
+                                <th class="text-end">Prix unitaire</th>
+                                <th class="text-end">Total</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var item in Model.Items)
+                            {
+                                <tr>
+                                    <td class="fw-semibold">@item.ProductName</td>
+                                    <td class="text-center">@item.Quantity</td>
+                                    <td class="text-end">@item.Price.ToString("N2") DT</td>
+                                    <td class="text-end fw-bold text-dark">@((item.Quantity * item.Price).ToString("N2")) DT</td>
+                                </tr>
+                            }
+                        </tbody>
+                        <tfoot>
+                            <tr>
+                                <th colspan="3" class="text-end pt-3">Frais de livraison :</th>
+                                <td class="text-end pt-3 text-success fw-bold">Gratuit</td>
+                            </tr>
+                            <tr>
+                                <th colspan="3" class="text-end fs-5 fw-bold border-0">Total réglé :</th>
+                                <td class="text-end fs-5 fw-bold text-primary border-0 font-poppins">@Model.TotalAmount.ToString("N2") DT</td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="d-flex flex-wrap justify-content-center gap-3">
+                <a asp-controller="Panier" asp-action="MesCommandes" class="btn btn-primary px-4 py-2">
+                    <i class="bi bi-receipt me-1"></i> Mes commandes
+                </a>
+                <a asp-controller="Product" asp-action="Index" class="btn btn-outline-secondary px-4 py-2">
+                    <i class="bi bi-shop me-1"></i> Continuer mes achats
+                </a>
+            </div>
+
+        </div>
     </div>
-    <div class="detail-row my-2">
-        <span class="detail-label fw-bold">Date :</span>
-        <span class="detail-value">@Model?.OrderDate.ToString("dd/MM/yyyy à HH:mm")</span>
-    </div>
-    <div class="detail-row my-2">
-        <span class="detail-label fw-bold">Montant total :</span>
-        <span class="detail-value">@Model?.TotalAmount DT</span>
-    </div>
-    <div class="detail-row my-2">
-        <span class="detail-label fw-bold">Adresse de livraison :</span>
-        <span class="detail-value">@Model?.Address</span>
-    </div>
-</div>
-<div class="mt-4">
-    <a asp-controller="Product" asp-action="Index" class="btn btn-primary">Continuer vos achats</a>
 </div>

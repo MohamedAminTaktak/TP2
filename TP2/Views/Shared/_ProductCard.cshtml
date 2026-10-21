@@ -1,0 +1,90 @@
+@model TP2.Models.Product
+
+@{
+    string imgPath = string.IsNullOrWhiteSpace(Model.Image) 
+        ? Url.Content("~/images/noimage.svg") 
+        : (Model.Image.StartsWith("http") || Model.Image.StartsWith("/") 
+            ? Model.Image 
+            : Url.Content("~/images/" + Model.Image));
+            
+    bool isOutOfStock = Model.QteStock <= 0;
+    bool isLowStock = Model.QteStock > 0 && Model.QteStock <= 5;
+}
+
+<div class="col">
+    <div class="product-card">
+        @* Stock Badge *@
+        @if (isOutOfStock)
+        {
+            <span class="product-badge-stock badge-out-stock">Rupture</span>
+        }
+        else if (isLowStock)
+        {
+            <span class="product-badge-stock badge-low-stock">Plus que @Model.QteStock</span>
+        }
+        else
+        {
+            <span class="product-badge-stock badge-in-stock">En stock</span>
+        }
+
+        @* Image Area *@
+        <a asp-controller="Product" asp-action="Details" asp-route-id="@Model.ProductId" class="product-image-box text-decoration-none">
+            <img src="@imgPath" alt="@Model.Name" loading="lazy" onerror="this.onerror=null;this.src='@Url.Content("~/images/noimage.svg")';" />
+        </a>
+
+        @* Card Body *@
+        <div class="product-card-body">
+            @if (Model.Category != null)
+            {
+                <a asp-controller="Product" asp-action="Index" asp-route-categoryId="@Model.CategoryId" class="category-pill text-decoration-none">
+                    @Model.Category.CategoryName
+                </a>
+            }
+            else
+            {
+                <span class="category-pill">Général</span>
+            }
+
+            <h3 class="product-title">
+                <a asp-controller="Product" asp-action="Details" asp-route-id="@Model.ProductId" class="text-decoration-none text-reset" title="@Model.Name">
+                    @Model.Name
+                </a>
+            </h3>
+
+            <div class="product-price">
+                @Model.Price.ToString("N2")<span class="currency">DT</span>
+            </div>
+
+            <div class="product-actions mt-auto">
+                <a asp-controller="Product" asp-action="Details" asp-route-id="@Model.ProductId" class="btn btn-outline-primary btn-sm" aria-label="Voir les détails de @Model.Name">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
+                        <path d="M16 8s-3-5.5-8-5.5S0 8 0 8s3 5.5 8 5.5S16 8 16 8zM1.173 8a13.133 13.133 0 0 1 1.66-2.043C4.12 4.668 5.88 3.5 8 3.5c2.12 0 3.879 1.168 5.168 2.457A13.133 13.133 0 0 1 14.828 8c-.058.087-.122.183-.195.288-.335.48-.83 1.12-1.465 1.755C11.879 11.332 10.119 12.5 8 12.5c-2.12 0-3.879-1.168-5.168-2.457A13.134 13.134 0 0 1 1.172 8z"/>
+                        <path d="M8 5.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5zM4.5 8a3.5 3.5 0 1 1 7 0 3.5 3.5 0 0 1-7 0z"/>
+                    </svg>
+                    Détails
+                </a>
+
+                @if (!isOutOfStock)
+                {
+                    <form asp-controller="Product" asp-action="AddToCart" method="post" class="add-to-cart-form d-inline-block w-100">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="productId" value="@Model.ProductId" />
+                        <input type="hidden" name="returnUrl" value="@Context.Request.Path@Context.Request.QueryString" />
+                        <button type="submit" class="btn btn-primary btn-sm w-100 btn-add-cart" aria-label="Ajouter @Model.Name au panier">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
+                                <path d="M0 1.5A.5.5 0 0 1 .5 1H2a.5.5 0 0 1 .485.379L2.89 3H14.5a.5.5 0 0 1 .491.592l-1.5 8A.5.5 0 0 1 13 12H4a.5.5 0 0 1-.491-.408L2.01 3.607 1.61 2H.5a.5.5 0 0 1-.5-.5zM3.102 4l1.313 7h8.17l1.313-7H3.102zM5 12a2 2 0 1 0 0 4 2 2 0 0 0 0-4zm7 0a2 2 0 1 0 0 4 2 2 0 0 0 0-4zm-7 1a1 1 0 1 1 0 2 1 1 0 0 1 0-2zm7 0a1 1 0 1 1 0 2 1 1 0 0 1 0-2z"/>
+                            </svg>
+                            Ajouter
+                        </button>
+                    </form>
+                }
+                else
+                {
+                    <button class="btn btn-secondary btn-sm w-100" disabled aria-disabled="true">
+                        Épuisé
+                    </button>
+                }
+            </div>
+        </div>
+    </div>
+</div>

@@ -1,5 +1,4 @@
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using TP2.Models;
 using TP2.Models.Repositories;
@@ -16,37 +15,30 @@ namespace TP2.Controllers
             CategRepository = categRepository;
         }
 
-        // GET: CategoryController
+        // GET: /Category
         [AllowAnonymous]
         public ActionResult Index()
         {
-            var Categories = CategRepository.GetAll();
-            ViewData["Categories"] = Categories;
-            return View(Categories);
+            var categories = CategRepository.GetAllWithProducts();
+            return View(categories);
         }
 
-        // GET: CategoryController/Details/5
+        // GET: /Category/Details/5
         public ActionResult Details(int id)
         {
-            ViewData["Categories"] = CategRepository.GetAll();
             var category = CategRepository.GetById(id);
-
             if (category == null)
-            {
                 return NotFound();
-            }
-
             return View(category);
         }
 
-        // GET: CategoryController/Create
+        // GET: /Category/Create
         public ActionResult Create()
         {
-            ViewData["Categories"] = CategRepository.GetAll();
             return View();
         }
 
-        // POST: CategoryController/Create
+        // POST: /Category/Create
         [HttpPost]
         [ValidateAntiForgeryToken]
         public ActionResult Create(Category category)
@@ -56,33 +48,28 @@ namespace TP2.Controllers
                 if (ModelState.IsValid)
                 {
                     CategRepository.Add(category);
-
+                    TempData["ToastSuccess"] = $"Catégorie « {category.CategoryName} » créée.";
                     return RedirectToAction(nameof(Index));
                 }
-
                 return View(category);
             }
-            catch
+            catch (Exception ex)
             {
+                ModelState.AddModelError("", $"Erreur : {ex.Message}");
                 return View(category);
             }
         }
 
-        // GET: CategoryController/Edit/5
+        // GET: /Category/Edit/5
         public ActionResult Edit(int id)
         {
-            ViewData["Categories"] = CategRepository.GetAll();
             var category = CategRepository.GetById(id);
-
             if (category == null)
-            {
                 return NotFound();
-            }
-
             return View(category);
         }
 
-        // POST: CategoryController/Edit/5
+        // POST: /Category/Edit/5
         [HttpPost]
         [ValidateAntiForgeryToken]
         public ActionResult Edit(int id, Category category)
@@ -90,65 +77,63 @@ namespace TP2.Controllers
             try
             {
                 if (id != category.CategoryId)
-                {
                     return NotFound();
-                }
 
                 if (ModelState.IsValid)
                 {
-                    var updatedCategory = CategRepository.Update(category);
-
-                    if (updatedCategory == null)
-                    {
+                    var updated = CategRepository.Update(category);
+                    if (updated == null)
                         return NotFound();
-                    }
-
+                    TempData["ToastSuccess"] = "Catégorie mise à jour.";
                     return RedirectToAction(nameof(Index));
                 }
-
                 return View(category);
             }
-            catch
+            catch (Exception ex)
             {
+                ModelState.AddModelError("", $"Erreur : {ex.Message}");
                 return View(category);
             }
         }
 
-        // GET: CategoryController/Delete/5
+        // GET: /Category/Delete/5
         public ActionResult Delete(int id)
         {
-            ViewData["Categories"] = CategRepository.GetAll();
             var category = CategRepository.GetById(id);
-
             if (category == null)
-            {
                 return NotFound();
-            }
 
+            int count = CategRepository.ProductCount(id);
+            ViewBag.ProductCount = count;
             return View(category);
         }
 
-        // POST: CategoryController/Delete/5
-        [HttpPost]
+        // POST: /Category/Delete/5
+        [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
-        public ActionResult Delete(int id, IFormCollection collection)
+        public ActionResult DeleteConfirmed(int id)
         {
-            try
+            var category = CategRepository.GetById(id);
+            if (category == null)
+                return NotFound();
+
+            if (CategRepository.HasProducts(id))
             {
-                var category = CategRepository.GetById(id);
-
-                if (category == null)
-                {
-                    return NotFound();
-                }
-
-                CategRepository.Delete(id);
-
+                int count = CategRepository.ProductCount(id);
+                TempData["ToastError"] = $"Impossible de supprimer « {category.CategoryName} » : elle contient {count} produit(s). Supprimez d'abord les produits.";
                 return RedirectToAction(nameof(Index));
             }
-            catch
+
+            try
             {
-                return View();
+                CategRepository.Delete(id);
+                TempData["ToastSuccess"] = $"Catégorie « {category.CategoryName} » supprimée.";
+                return RedirectToAction(nameof(Index));
+            }
+            catch (Exception ex)
+            {
+                TempData["ToastError"] = $"Erreur lors de la suppression : {ex.Message}";
+                return RedirectToAction(nameof(Index));
             }
         }
     }

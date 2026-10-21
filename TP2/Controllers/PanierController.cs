@@ -1,211 +1,318 @@
-using System;
-using System.Linq;
-using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using TP2.Models;
-using TP2.Models.Help;
 using TP2.Models.Repositories;
+using TP2.Services;
 using TP2.ViewModels;
 
 namespace TP2.Controllers
 {
     public class PanierController : Controller
     {
-        readonly IProductRepository productRepository;
-        readonly IOrderRepository orderRepository;
+        private readonly IProductRepository productRepository;
+        private readonly IOrderRepository orderRepository;
         private readonly UserManager<IdentityUser> userManager;
+        private readonly ICartService cartService;
+        private readonly AppDbContext context;
 
         public PanierController(
             IProductRepository productRepository,
             IOrderRepository orderRepository,
-            UserManager<IdentityUser> userManager)
+            UserManager<IdentityUser> userManager,
+            ICartService cartService,
+            AppDbContext context)
         {
             this.productRepository = productRepository;
             this.orderRepository = orderRepository;
             this.userManager = userManager;
+            this.cartService = cartService;
+            this.context = context;
         }
 
-        public ActionResult Index()
+        // GET: /Panier
+        public async Task<IActionResult> Index()
         {
-            ViewBag.Liste = ListeCart.Instance.Items;
-            ViewBag.total = ListeCart.Instance.GetSubTotal();
-            return View();
+            var lines = await cartService.GetLinesAsync();
+            var total = lines.Sum(l => l.LineTotal);
+            ViewBag.Total = total;
+            return View(lines);
         }
 
-        public ActionResult AddProduct(int id)
-        {
-            Product pp = productRepository.GetById(id);
-            if (pp != null)
-            {
-                ListeCart.Instance.AddItem(pp);
-            }
-            ViewBag.Liste = ListeCart.Instance.Items;
-            ViewBag.total = ListeCart.Instance.GetSubTotal();
-            return View();
-        }
-
+        // POST: /Panier/AddProduct — [HttpPost] + PRG
         [HttpPost]
-        public ActionResult PlusProduct(int id)
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> AddProduct(int id)
         {
-            Product pp = productRepository.GetById(id);
-            if (pp != null)
+            var product = productRepository.GetById(id);
+            if (product != null && product.QteStock > 0)
             {
-                ListeCart.Instance.AddItem(pp);
+                await cartService.AddAsync(id);
+                TempData["ToastSuccess"] = $"« {product.Name} » ajouté au panier.";
             }
-
-            Item? trouve = null;
-            foreach (Item a in ListeCart.Instance.Items)
+            else if (product != null)
             {
-                if (pp != null && a.Prod.ProductId == pp.ProductId)
-                    trouve = a;
+                TempData["ToastError"] = $"« {product.Name} » est en rupture de stock.";
             }
-
-            var results = new
-            {
-                ct = 1,
-                Total = ListeCart.Instance.GetSubTotal(),
-                Quatite = trouve != null ? trouve.quantite : 0,
-                TotalRow = trouve != null ? trouve.TotalPrice : 0
-            };
-            return Json(results);
+            return RedirectToAction(nameof(Index));
         }
 
+        // POST: /Panier/PlusProduct
         [HttpPost]
-        public ActionResult MinusProduct(int id)
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> PlusProduct(int id)
         {
-            Product pp = productRepository.GetById(id);
-            if (pp != null)
-            {
-                ListeCart.Instance.SetLessOneItem(pp);
-            }
+            var product = productRepository.GetById(id);
+            if (product == null)
+                return Json(new { success = false, message = "Produit introuvable." });
 
-            Item? trouve = null;
-            foreach (Item a in ListeCart.Instance.Items)
-            {
-                if (pp != null && a.Prod.ProductId == pp.ProductId)
-                    trouve = a;
-            }
+            var lines = await cartService.GetLinesAsync();
+            var line = lines.FirstOrDefault(l => l.ProductId == id);
+            int currentQty = line?.Quantity ?? 0;
 
-            if (trouve != null)
+            if (currentQty >= product.QteStock)
             {
-                var results = new
+                var total = lines.Sum(l => l.LineTotal);
+                return Json(new
                 {
-                    Total = ListeCart.Instance.GetSubTotal(),
-                    Quatite = trouve.quantite,
-                    TotalRow = trouve.TotalPrice,
-                    ct = 1
-                };
-                return Json(results);
+                    success = false,
+                    message = $"Stock max atteint ({product.QteStock} unités).",
+                    Total = total.ToString("N2"),
+                    CartCount = lines.Sum(l => l.Quantity)
+                });
             }
 
-            var emptyResults = new
+            await cartService.AddAsync(id);
+            var updatedLines = await cartService.GetLinesAsync();
+            var updatedLine = updatedLines.FirstOrDefault(l => l.ProductId == id);
+            var grandTotal = updatedLines.Sum(l => l.LineTotal);
+
+            return Json(new
             {
-                ct = 0
-            };
-            return Json(emptyResults);
+                success = true,
+                ct = 1,
+                Total = grandTotal.ToString("N2"),
+                Quatite = updatedLine?.Quantity ?? 0,
+                TotalRow = updatedLine?.LineTotal.ToString("N2") ?? "0,00",
+                CartCount = updatedLines.Sum(l => l.Quantity)
+            });
         }
 
+        // POST: /Panier/MinusProduct
         [HttpPost]
-        public ActionResult RemoveProduct(int id)
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> MinusProduct(int id)
         {
-            Product pp = productRepository.GetById(id);
-            if (pp != null)
+            await cartService.DecreaseAsync(id);
+            var lines = await cartService.GetLinesAsync();
+            var line = lines.FirstOrDefault(l => l.ProductId == id);
+            var grandTotal = lines.Sum(l => l.LineTotal);
+
+            if (line != null)
             {
-                ListeCart.Instance.RemoveItem(pp);
+                return Json(new
+                {
+                    success = true,
+                    ct = 1,
+                    Total = grandTotal.ToString("N2"),
+                    Quatite = line.Quantity,
+                    TotalRow = line.LineTotal.ToString("N2"),
+                    CartCount = lines.Sum(l => l.Quantity)
+                });
             }
-            var results = new
+
+            // Ligne supprimée (quantité était 1)
+            return Json(new
             {
-                Total = ListeCart.Instance.GetSubTotal(),
-            };
-            return Json(results);
+                success = true,
+                ct = 0,
+                Total = grandTotal.ToString("N2"),
+                CartCount = lines.Sum(l => l.Quantity)
+            });
         }
 
-        [Authorize]
+        // POST: /Panier/RemoveProduct
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> RemoveProduct(int id)
+        {
+            await cartService.RemoveAsync(id);
+            var lines = await cartService.GetLinesAsync();
+            var grandTotal = lines.Sum(l => l.LineTotal);
+
+            return Json(new
+            {
+                success = true,
+                Total = grandTotal.ToString("N2"),
+                CartCount = lines.Sum(l => l.Quantity)
+            });
+        }
+
+        // GET: /Panier/CartCount  — pour le badge dans le header
+        [HttpGet]
+        public async Task<IActionResult> CartCount()
+        {
+            int count = await cartService.GetCountAsync();
+            return Json(new { count });
+        }
+
         // GET: /Panier/Checkout
+        [Authorize]
         [HttpGet]
         public async Task<IActionResult> Checkout()
         {
-            if (!User.Identity.IsAuthenticated)
+            var lines = await cartService.GetLinesAsync();
+            if (lines.Count == 0)
             {
-                return RedirectToAction("Login", "Account", new { returnUrl = Request.Path });
+                TempData["ToastError"] = "Votre panier est vide. Ajoutez des produits avant de commander.";
+                return RedirectToAction(nameof(Index));
             }
-            var user = await userManager.GetUserAsync(User);
-            if (user == null)
+
+            var vm = new OrderViewModel
             {
-                return RedirectToAction("Login", "Account", new { returnUrl = Request.Path });
-            }
-            var cartItems = ListeCart.Instance.Items.ToList();
-            var totalAmount = ListeCart.Instance.GetSubTotal();
-            var viewModel = new OrderViewModel
-            {
-                CartItems = cartItems.Select(item => new CartItemViewModel
-                {
-                    ProductName = item.Prod.Name,
-                    Quantity = item.quantite,
-                    Price = item.Prod.Price
-                }).ToList(),
-                TotalAmount = totalAmount
+                CartItems = lines,
+                TotalAmount = lines.Sum(l => l.LineTotal)
             };
-            return View(viewModel);
+
+            return View(vm);
         }
 
-        // POST : /Panier/Checkout
+        // POST: /Panier/Checkout
+        [Authorize]
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Checkout(OrderViewModel model)
         {
-            if (ModelState.IsValid)
+            var lines = await cartService.GetLinesAsync();
+
+            if (lines.Count == 0)
             {
-                var user = await userManager.GetUserAsync(User);
-                if (user == null)
+                TempData["ToastError"] = "Votre panier est vide.";
+                return RedirectToAction(nameof(Index));
+            }
+
+            // Toujours recharger depuis la session (ne jamais faire confiance au formulaire)
+            model.CartItems = lines;
+            model.TotalAmount = lines.Sum(l => l.LineTotal);
+
+            if (!ModelState.IsValid)
+                return View(model);
+
+            var user = await userManager.GetUserAsync(User);
+            if (user == null)
+                return RedirectToAction("Login", "Account", new { returnUrl = Url.Action("Checkout", "Panier") });
+
+            // Vérification du stock dans une transaction
+            using var transaction = await context.Database.BeginTransactionAsync();
+            try
+            {
+                foreach (var item in lines)
                 {
-                    TempData["ErrorMessage"] = "Utilisateur non authentifié.";
-                    return RedirectToAction("Login", "Account", new { returnUrl = Request.Path });
+                    var product = productRepository.GetById(item.ProductId);
+                    if (product == null)
+                    {
+                        ModelState.AddModelError("", $"Le produit « {item.ProductName} » n'existe plus.");
+                        return View(model);
+                    }
+                    if (item.Quantity > product.QteStock)
+                    {
+                        ModelState.AddModelError("",
+                            $"Stock insuffisant pour « {item.ProductName} » : {product.QteStock} disponible(s), {item.Quantity} demandé(s).");
+                        return View(model);
+                    }
                 }
-                // Recharger les articles du panier depuis la source (ListeCart)
-                var cartItems = ListeCart.Instance.Items.ToList();
-                model.CartItems = cartItems.Select(item => new CartItemViewModel
+
+                // Décrémentation du stock
+                foreach (var item in lines)
                 {
-                    ProductName = item.Prod.Name,
-                    Quantity = item.quantite,
-                    Price = item.Prod.Price
-                }).ToList();
-                model.TotalAmount = ListeCart.Instance.GetSubTotal();
+                    var product = productRepository.GetById(item.ProductId)!;
+                    product.QteStock -= item.Quantity;
+                    productRepository.Update(product);
+                }
 
                 var order = new Order
                 {
                     CustomerName = user.UserName ?? user.Email ?? "Client",
                     Email = user.Email ?? string.Empty,
                     Address = model.Address,
+                    Phone = model.Phone,
+                    PaymentMethod = model.PaymentMethod,
+                    Status = "En attente",
                     TotalAmount = model.TotalAmount,
-                    OrderDate = DateTime.Now,
+                    OrderDate = DateTime.UtcNow,
                     UserId = user.Id,
-                    Items = model.CartItems.Select(item => new OrderItem
+                    Items = lines.Select(item => new OrderItem
                     {
+                        ProductId = item.ProductId,
                         ProductName = item.ProductName,
                         Quantity = item.Quantity,
                         Price = item.Price
                     }).ToList()
                 };
+
                 orderRepository.Add(order);
-                ListeCart.Instance.Items.Clear();
-                TempData["SuccessMessage"] = "Votre commande a été passée avec succès.";
-                return RedirectToAction("Confirmation", new { orderId = order.Id });
+                await transaction.CommitAsync();
+                cartService.Clear();
+
+                TempData["SuccessMessage"] = "Votre commande a été passée avec succès !";
+                return RedirectToAction(nameof(Confirmation), new { orderId = order.Id });
             }
-            TempData["ErrorMessage"] = "Une erreur est survenue. Veuillez vérifier les informations.";
-            return View(model);
+            catch (Exception ex)
+            {
+                await transaction.RollbackAsync();
+                ModelState.AddModelError("", $"Une erreur est survenue : {ex.Message}");
+                return View(model);
+            }
         }
 
-        // GET: /Panier/Confirmation
-        public IActionResult Confirmation(int orderId)
+        // GET: /Panier/Confirmation?orderId=
+        [Authorize]
+        public async Task<IActionResult> Confirmation(int orderId)
         {
             var order = orderRepository.GetById(orderId);
             if (order == null)
-            {
                 return NotFound();
-            }
+
+            // IDOR protection
+            var user = await userManager.GetUserAsync(User);
+            if (user == null)
+                return Forbid();
+
+            bool isAdminOrManager = User.IsInRole("Admin") || User.IsInRole("Manager");
+            if (!isAdminOrManager && order.UserId != user.Id)
+                return Forbid();
+
+            return View(order);
+        }
+
+        // GET: /Panier/MesCommandes
+        [Authorize]
+        public async Task<IActionResult> MesCommandes()
+        {
+            var user = await userManager.GetUserAsync(User);
+            if (user == null)
+                return Challenge();
+
+            var orders = orderRepository.GetByUserId(user.Id);
+            return View(orders);
+        }
+
+        // GET: /Panier/OrderDetails/5
+        [Authorize]
+        public async Task<IActionResult> OrderDetails(int id)
+        {
+            var order = orderRepository.GetById(id);
+            if (order == null)
+                return NotFound();
+
+            var user = await userManager.GetUserAsync(User);
+            if (user == null)
+                return Challenge();
+
+            bool isAdminOrManager = User.IsInRole("Admin") || User.IsInRole("Manager");
+            if (!isAdminOrManager && order.UserId != user.Id)
+                return Forbid();
+
             return View(order);
         }
     }

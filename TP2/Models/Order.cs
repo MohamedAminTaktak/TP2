@@ -10,8 +10,11 @@ namespace TP2.Models
         public string CustomerName { get; set; } = string.Empty;
         public string Email { get; set; } = string.Empty;
         public string Address { get; set; } = string.Empty;
-        public float TotalAmount { get; set; }
+        public string? Phone { get; set; }
+        public decimal TotalAmount { get; set; }
         public DateTime OrderDate { get; set; }
+        public string PaymentMethod { get; set; } = string.Empty;
+        public string Status { get; set; } = "En attente";
         // Lien avec l'utilisateur dans Identity
         public string UserId { get; set; } = string.Empty;
         public IdentityUser? User { get; set; }

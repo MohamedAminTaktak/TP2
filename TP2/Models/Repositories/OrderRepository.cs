@@ -1,4 +1,3 @@
-using System.Linq;
 using Microsoft.EntityFrameworkCore;
 using TP2.Models;
 
@@ -24,6 +23,29 @@ namespace TP2.Models.Repositories
             return context.Orders
                 .Include(o => o.Items)
                 .FirstOrDefault(o => o.Id == id);
+        }
+
+        public IList<Order> GetByUserId(string userId)
+        {
+            return context.Orders
+                .Include(o => o.Items)
+                .Where(o => o.UserId == userId)
+                .OrderByDescending(o => o.OrderDate)
+                .ToList();
+        }
+
+        public IList<Order> GetAll()
+        {
+            return context.Orders
+                .Include(o => o.Items)
+                .OrderByDescending(o => o.OrderDate)
+                .ToList();
+        }
+
+        public void Update(Order o)
+        {
+            context.Orders.Update(o);
+            context.SaveChanges();
         }
     }
 }

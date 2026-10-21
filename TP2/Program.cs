@@ -1,47 +1,89 @@
+using System.Globalization;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Localization;
 using Microsoft.EntityFrameworkCore;
 using TP2.Models;
 using TP2.Models.Repositories;
+using TP2.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
+// ── Services ───────────────────────────────────────────────────────────────
+
 builder.Services.AddControllersWithViews();
+
 builder.Services.AddDbContextPool<AppDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("ProductDBConnection")));
+
 builder.Services.AddScoped<IProductRepository, ProductRepository>();
 builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
 builder.Services.AddScoped<IOrderRepository, OrderRepository>();
+
+// Session-based cart (per user)
+builder.Services.AddDistributedMemoryCache();
+builder.Services.AddSession(options =>
+{
+    options.IdleTimeout = TimeSpan.FromHours(2);
+    options.Cookie.HttpOnly = true;
+    options.Cookie.IsEssential = true;
+    options.Cookie.SameSite = SameSiteMode.Lax;
+});
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<ICartService, CartService>();
+
 builder.Services.AddIdentity<IdentityUser, IdentityRole>()
-    .AddEntityFrameworkStores<AppDbContext>();
+    .AddEntityFrameworkStores<AppDbContext>()
+    .AddDefaultTokenProviders();
 
 builder.Services.Configure<IdentityOptions>(options =>
 {
-    // Default Password settings.
     options.Password.RequireNonAlphanumeric = false;
     options.Password.RequireUppercase = false;
     options.Password.RequiredLength = 6;
 });
 
+builder.Services.ConfigureApplicationCookie(options =>
+{
+    options.LoginPath = "/Account/Login";
+    options.AccessDeniedPath = "/Account/AccessDenied";
+});
+
+// ── Build ──────────────────────────────────────────────────────────────────
+
 var app = builder.Build();
 
+// Seed roles and admin user
 using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
     await SeedRolesAndAdminAsync(services);
 }
 
-// Configure the HTTP request pipeline.
+// ── Middleware pipeline ────────────────────────────────────────────────────
+
+app.UseStatusCodePagesWithReExecute("/Home/HandleError/{0}");
+
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Home/Error");
-    // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
     app.UseHsts();
 }
+
+// Localisation : format des nombres en français (virgule décimale, DT)
+var frCulture = new CultureInfo("fr-FR");
+app.UseRequestLocalization(new RequestLocalizationOptions
+{
+    DefaultRequestCulture = new RequestCulture(frCulture),
+    SupportedCultures = new[] { frCulture },
+    SupportedUICultures = new[] { frCulture }
+});
 
 app.UseHttpsRedirection();
 app.UseStaticFiles();
 app.UseRouting();
+
+// Session DOIT être avant UseAuthentication
+app.UseSession();
 app.UseAuthentication();
 app.UseAuthorization();
 
@@ -53,6 +95,8 @@ app.MapControllerRoute(
     .WithStaticAssets();
 
 app.Run();
+
+// ── Seeder ─────────────────────────────────────────────────────────────────
 
 static async Task SeedRolesAndAdminAsync(IServiceProvider services)
 {
@@ -69,12 +113,12 @@ static async Task SeedRolesAndAdminAsync(IServiceProvider services)
         {
             var result = await roleManager.CreateAsync(new IdentityRole(roleName));
             if (!result.Succeeded)
-            {
-                throw new InvalidOperationException($"Failed to create role '{roleName}': {string.Join(", ", result.Errors.Select(e => e.Description))}");
-            }
+                throw new InvalidOperationException(
+                    $"Impossible de créer le rôle '{roleName}' : {string.Join(", ", result.Errors.Select(e => e.Description))}");
         }
     }
 
+    // Credentials from appsettings.Development.json or User Secrets
     var adminSection = configuration.GetSection("AdminUser");
     var adminEmail = adminSection["Email"] ?? "admin@tp2.com";
     var adminPassword = adminSection["Password"] ?? "Admin123!";
@@ -91,19 +135,17 @@ static async Task SeedRolesAndAdminAsync(IServiceProvider services)
 
         var createResult = await userManager.CreateAsync(adminUser, adminPassword);
         if (!createResult.Succeeded)
-        {
-            throw new InvalidOperationException($"Failed to create admin user: {string.Join(", ", createResult.Errors.Select(e => e.Description))}");
-        }
+            throw new InvalidOperationException(
+                $"Impossible de créer l'utilisateur admin : {string.Join(", ", createResult.Errors.Select(e => e.Description))}");
     }
 
     if (!await userManager.IsInRoleAsync(adminUser, "Admin"))
     {
         var roleResult = await userManager.AddToRoleAsync(adminUser, "Admin");
         if (!roleResult.Succeeded)
-        {
-            throw new InvalidOperationException($"Failed to assign admin role: {string.Join(", ", roleResult.Errors.Select(e => e.Description))}");
-        }
+            throw new InvalidOperationException(
+                $"Impossible d'assigner le rôle Admin : {string.Join(", ", roleResult.Errors.Select(e => e.Description))}");
     }
 
-    logger.LogInformation("Identity roles and default admin user were initialized successfully.");
+    logger.LogInformation("Rôles Identity et utilisateur admin initialisés avec succès.");
 }

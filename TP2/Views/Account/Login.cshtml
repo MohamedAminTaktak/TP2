@@ -1,35 +1,86 @@
 @model TP2.ViewModels.LoginViewModel
+@{
+    ViewData["Title"] = "Connexion";
+    ViewData["HideSidebar"] = true;
+    var returnUrl = ViewData["ReturnUrl"] as string ?? Context.Request.Query["returnUrl"].ToString();
+}
 
-@{
-    ViewBag.Title = "User Login";
-}
-<h1>User Login</h1>
-@{
-    var returnUrl = Context.Request.Query["ReturnUrl"];
-}
-<div class="row">
-    <div class="col-md-12">
-        <form asp-route-returnurl="@returnUrl" method="post">
-            <div asp-validation-summary="All" class="text-danger"></div>
-            <div class="form-group mb-3">
-                <label asp-for="Email"></label>
-                <input asp-for="Email" class="form-control" />
-                <span asp-validation-for="Email" class="text-danger"></span>
+<div class="auth-wrapper">
+    <div class="auth-card">
+        <!-- Brand Icon -->
+        <div class="text-center mb-4">
+            <div class="brand-icon mx-auto mb-2" style="width:48px;height:48px;font-size:1.5rem;background:var(--color-primary);color:#fff;border-radius:12px;display:flex;align-items:center;justify-content:center;">
+                <i class="bi bi-person-fill"></i>
             </div>
-            <div class="form-group mb-3">
-                <label asp-for="Password"></label>
-                <input asp-for="Password" class="form-control" />
-                <span asp-validation-for="Password" class="text-danger"></span>
+            <h1 class="h4 fw-bold text-ink mb-1">Bon retour !</h1>
+            <p class="text-muted small">Connectez-vous à votre compte TP2 Shop</p>
+        </div>
+
+        <form asp-action="Login" asp-route-returnurl="@returnUrl" method="post">
+            @Html.AntiForgeryToken()
+
+            <div asp-validation-summary="ModelOnly" class="alert alert-danger small py-2" role="alert"></div>
+
+            <!-- Email (Floating label) -->
+            <div class="form-floating mb-3">
+                <input asp-for="Email" class="form-control" placeholder="nom@exemple.com" required autocomplete="username" />
+                <label asp-for="Email">Adresse e-mail</label>
+                <span asp-validation-for="Email" class="text-danger small"></span>
             </div>
-            <div class="form-group mb-3">
-                <div class="checkbox">
-                    <label asp-for="RememberMe">
-                        <input asp-for="RememberMe" />
-                        @Html.DisplayNameFor(m => m.RememberMe)
+
+            <!-- Password with Show/Hide toggle -->
+            <div class="position-relative mb-3">
+                <div class="form-floating">
+                    <input asp-for="Password" class="form-control" id="loginPasswordInput" placeholder="Mot de passe" required autocomplete="current-password" />
+                    <label asp-for="Password">Mot de passe</label>
+                </div>
+                <button type="button" class="btn btn-sm btn-link text-muted position-absolute end-0 top-50 translate-middle-y me-2 text-decoration-none" 
+                        onclick="togglePasswordVisibility('loginPasswordInput', this)" aria-label="Afficher ou masquer le mot de passe">
+                    <i class="bi bi-eye fs-5"></i>
+                </button>
+                <span asp-validation-for="Password" class="text-danger small"></span>
+            </div>
+
+            <!-- Remember me -->
+            <div class="d-flex align-items-center justify-content-between mb-4">
+                <div class="form-check">
+                    <input asp-for="RememberMe" class="form-check-input" />
+                    <label asp-for="RememberMe" class="form-check-label small text-muted">
+                        Se souvenir de moi
                     </label>
                 </div>
             </div>
-            <button type="submit" class="btn btn-primary">Login</button>
+
+            <!-- Submit Button -->
+            <button type="submit" class="btn btn-primary w-100 py-2 fs-6 mb-3">
+                <i class="bi bi-box-arrow-in-right me-1"></i> Se connecter
+            </button>
+
+            <!-- Link to Register -->
+            <div class="text-center small text-muted">
+                Vous n'avez pas encore de compte ?
+                <a asp-action="Register" asp-route-returnurl="@returnUrl" class="fw-bold text-primary text-decoration-none ms-1">
+                    Créer un compte
+                </a>
+            </div>
         </form>
     </div>
 </div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        function togglePasswordVisibility(inputId, btn) {
+            var input = document.getElementById(inputId);
+            if (!input) return;
+            var icon = btn.querySelector('i');
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.className = 'bi bi-eye-slash fs-5';
+            } else {
+                input.type = 'password';
+                icon.className = 'bi bi-eye fs-5';
+            }
+        }
+    </script>
+}

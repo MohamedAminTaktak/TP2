@@ -4,7 +4,10 @@ namespace TP2.Models.Repositories
 {
     public interface IOrderRepository
     {
-        Order? GetById(int Id);
         void Add(Order o);
+        Order? GetById(int id);
+        IList<Order> GetByUserId(string userId);
+        IList<Order> GetAll();
+        void Update(Order o);
     }
 }

@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="280" height="280" viewBox="0 0 280 280">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#e9ecef"/>
+      <stop offset="100%" stop-color="#dee2e6"/>
+    </linearGradient>
+  </defs>
+  <circle cx="140" cy="140" r="130" fill="url(#bg)"/>
+  <!-- Cart body -->
+  <path d="M60 80 L80 80 L105 175 L210 175 L230 100 L90 100" fill="none" stroke="#adb5bd" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Cart wheels -->
+  <circle cx="120" cy="195" r="14" fill="none" stroke="#adb5bd" stroke-width="7"/>
+  <circle cx="190" cy="195" r="14" fill="none" stroke="#adb5bd" stroke-width="7"/>
+  <!-- Empty cross -->
+  <line x1="145" y1="118" x2="145" y2="158" stroke="#ced4da" stroke-width="6" stroke-linecap="round"/>
+  <line x1="125" y1="138" x2="165" y2="138" stroke="#ced4da" stroke-width="6" stroke-linecap="round"/>
+</svg>

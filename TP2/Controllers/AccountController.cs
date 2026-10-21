@@ -7,7 +7,6 @@ namespace TP2.Controllers
 {
     public class AccountController : Controller
     {
-        // GET: AccountController
         private readonly UserManager<IdentityUser> userManager;
         private readonly SignInManager<IdentityUser> signInManager;
 
@@ -18,37 +17,36 @@ namespace TP2.Controllers
             this.signInManager = signInManager;
         }
 
+        [AllowAnonymous]
         [HttpGet]
         public IActionResult Register()
         {
+            if (signInManager.IsSignedIn(User))
+                return RedirectToAction("Index", "Home");
             return View();
         }
 
+        [AllowAnonymous]
         [HttpPost]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> Register(RegisterViewModel model)
         {
             if (ModelState.IsValid)
             {
-                // Copy data from RegisterViewModel to IdentityUser
                 var user = new IdentityUser
                 {
                     UserName = model.Email,
                     Email = model.Email
                 };
 
-                // Store user data in AspNetUsers database table
                 var result = await userManager.CreateAsync(user, model.Password);
 
-                // If user is successfully created, sign-in the user using
-                // SignInManager and redirect to index action of HomeController
                 if (result.Succeeded)
                 {
                     await signInManager.SignInAsync(user, isPersistent: false);
-                    return RedirectToAction("index", "home");
+                    return RedirectToAction("Index", "Home");
                 }
 
-                // If there are any errors, add them to the ModelState object
-                // which will be displayed by the validation summary tag helper
                 foreach (var error in result.Errors)
                 {
                     ModelState.AddModelError(string.Empty, error.Description);
@@ -58,40 +56,45 @@ namespace TP2.Controllers
             return View(model);
         }
 
+        [Authorize]
         [HttpPost]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> Logout()
         {
             await signInManager.SignOutAsync();
             return RedirectToAction("Index", "Home");
         }
 
+        [AllowAnonymous]
         [HttpGet]
-        public IActionResult Login()
+        public IActionResult Login(string? returnUrl)
         {
+            if (signInManager.IsSignedIn(User))
+                return RedirectToAction("Index", "Home");
+            ViewData["ReturnUrl"] = returnUrl;
             return View();
         }
 
+        [AllowAnonymous]
         [HttpPost]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> Login(LoginViewModel model, string? returnUrl)
         {
+            ViewData["ReturnUrl"] = returnUrl;
             if (ModelState.IsValid)
             {
                 var result = await signInManager.PasswordSignInAsync(model.Email,
-                    model.Password, model.RememberMe, false);
+                    model.Password, model.RememberMe, lockoutOnFailure: false);
 
                 if (result.Succeeded)
                 {
-                    if (!string.IsNullOrEmpty(returnUrl))
-                    {
+                    if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
                         return LocalRedirect(returnUrl);
-                    }
-                    else
-                    {
-                        return RedirectToAction("Index", "Home");
-                    }
+
+                    return RedirectToAction("Index", "Home");
                 }
 
-                ModelState.AddModelError(string.Empty, "Invalid Login Attempt");
+                ModelState.AddModelError(string.Empty, "Tentative de connexion invalide. Vérifiez votre e-mail et votre mot de passe.");
             }
 
             return View(model);

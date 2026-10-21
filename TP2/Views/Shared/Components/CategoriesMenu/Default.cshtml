@@ -1,0 +1,45 @@
+@model IEnumerable<TP2.Models.Category>
+@{
+    int activeCategoryId = (int)(ViewBag.ActiveCategoryId ?? 0);
+}
+
+<div class="sidebar-header-box">
+    <i class="bi bi-grid-fill"></i>
+    <span>Rayons</span>
+</div>
+
+<ul class="sidebar-nav-list">
+    <li class="sidebar-nav-item @(activeCategoryId == 0 ? "active" : "")">
+        <a asp-controller="Product" asp-action="Index" class="text-decoration-none">
+            <span class="d-flex align-items-center gap-2">
+                <i class="bi bi-shop text-muted"></i>
+                Toutes les catégories
+            </span>
+            <span class="badge-count">@Model.Sum(c => c.Products?.Count ?? 0)</span>
+        </a>
+    </li>
+
+    @if (Model != null && Model.Any())
+    {
+        @foreach (var cat in Model)
+        {
+            bool isActive = cat.CategoryId == activeCategoryId;
+            int count = cat.Products?.Count ?? 0;
+            <li class="sidebar-nav-item @(isActive ? "active" : "")">
+                <a asp-controller="Product" asp-action="Index" asp-route-categoryId="@cat.CategoryId" class="text-decoration-none">
+                    <span class="d-flex align-items-center gap-2">
+                        <i class="bi bi-tag text-muted"></i>
+                        @cat.CategoryName
+                    </span>
+                    <span class="badge-count">@count</span>
+                </a>
+            </li>
+        }
+    }
+    else
+    {
+        <li class="p-3 text-muted small fst-italic">
+            Aucune catégorie disponible
+        </li>
+    }
+</ul>

@@ -1,9 +1,9 @@
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using TP2.Models;
 using TP2.Models.Repositories;
+using TP2.Services;
 using TP2.ViewModels;
 
 namespace TP2.Controllers
@@ -11,129 +11,172 @@ namespace TP2.Controllers
     [Authorize(Roles = "Admin,Manager")]
     public class ProductController : Controller
     {
-        readonly IProductRepository ProductRepository;
-        readonly ICategoryRepository CategRepository;
-        // Permet d'accéder au chemin physique de wwwroot
+        private readonly IProductRepository ProductRepository;
+        private readonly ICategoryRepository CategRepository;
         private readonly IWebHostEnvironment hostingEnvironment;
+        private readonly ICartService cartService;
+
+        private static readonly string[] AllowedExtensions = { ".jpg", ".jpeg", ".png", ".webp", ".gif" };
+        private const long MaxImageSize = 2 * 1024 * 1024; // 2 MB
 
         public ProductController(
-            IProductRepository ProdRepository,
+            IProductRepository prodRepository,
             ICategoryRepository categRepository,
-            IWebHostEnvironment hostingEnvironment)
+            IWebHostEnvironment hostingEnvironment,
+            ICartService cartService)
         {
-            ProductRepository = ProdRepository;
+            ProductRepository = prodRepository;
             CategRepository = categRepository;
             this.hostingEnvironment = hostingEnvironment;
+            this.cartService = cartService;
         }
 
-        // GET: ProductController
+        // GET: /Product/Index?categoryId=&search=&sortBy=&page=
         [AllowAnonymous]
-        public IActionResult Index(int? categoryId, int page = 1)
+        public IActionResult Index(int? categoryId, string? search, string? sortBy, int page = 1)
         {
-            int pageSize = 4; // Nombre de produits par page
-            var categories = CategRepository.GetAll();
-            // Passer les catégories à la vue
-            ViewData["Categories"] = categories;
+            const int pageSize = 4;
 
-            // Récupérer les produits en fonction de categoryId, s'il est spécifié
-            IQueryable<Product> productsQuery = ProductRepository.GetAllProducts();
+            IQueryable<Product> query = ProductRepository.GetAllProducts();
+
             if (categoryId.HasValue)
+                query = query.Where(p => p.CategoryId == categoryId.Value);
+
+            if (!string.IsNullOrWhiteSpace(search))
+                query = query.Where(p =>
+                    p.Name.Contains(search) ||
+                    (p.Category != null && p.Category.CategoryName.Contains(search)));
+
+            // Tri
+            query = sortBy switch
             {
-                productsQuery = productsQuery.Where(p => p.CategoryId == categoryId);
-            }
+                "price_asc" => query.OrderBy(p => p.Price),
+                "price_desc" => query.OrderByDescending(p => p.Price),
+                "recent" => query.OrderByDescending(p => p.ProductId),
+                _ => query.OrderBy(p => p.Name)
+            };
 
-            // Pagination
-            var totalProducts = productsQuery.Count();
-            var products = productsQuery.Skip((page - 1) * pageSize).Take(pageSize).ToList();
-            ViewBag.TotalPages = (int)Math.Ceiling((double)totalProducts / pageSize);
-            ViewBag.CurrentPage = page;
-            ViewBag.CategoryId = categoryId; // Passer categoryId à la vue
+            int total = query.Count();
+            int totalPages = total == 0 ? 1 : (int)Math.Ceiling((double)total / pageSize);
+            page = Math.Clamp(page, 1, totalPages);
 
-            return View(products);
+            var products = query
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToList();
+
+            string? catName = categoryId.HasValue
+                ? CategRepository.GetById(categoryId.Value)?.CategoryName
+                : null;
+
+            var vm = new ProduitPaginationViewModel
+            {
+                Products = products,
+                PageActuelle = page,
+                TotalPages = totalPages,
+                TotalItems = total,
+                CategoryId = categoryId,
+                SearchTerm = search,
+                CategoryName = catName,
+                SortBy = sortBy,
+                PageSize = pageSize
+            };
+
+            return View(vm);
         }
 
-        // GET: ProductController/Details/5
+        // GET: /Product/Details/5
+        [AllowAnonymous]
         public ActionResult Details(int id)
         {
-            ViewData["Categories"] = CategRepository.GetAll();
             var product = ProductRepository.GetById(id);
-
             if (product == null)
-            {
                 return NotFound();
-            }
+
+            var similar = ProductRepository.GetAllProducts()
+                .Where(p => p.CategoryId == product.CategoryId && p.ProductId != product.ProductId)
+                .Take(4)
+                .ToList();
+            ViewBag.SimilarProducts = similar;
 
             return View(product);
         }
 
-        // GET: ProductController/Create
-        public ActionResult Create()
+        // POST: /Product/AddToCart  (AJAX ou POST normal)
+        [AllowAnonymous]
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> AddToCart(int productId, int quantity = 1, string? returnUrl = null)
         {
-            ViewData["Categories"] = CategRepository.GetAll();
-            // Charger les catégories depuis la base de données
-            ViewBag.CategoryId = new SelectList(
-                CategRepository.GetAll(),
-                "CategoryId",
-                "CategoryName"
-            );
+            var product = ProductRepository.GetById(productId);
+            if (product == null)
+                return NotFound();
 
-            return View();
+            if (quantity < 1) quantity = 1;
+            for (int i = 0; i < quantity; i++)
+            {
+                await cartService.AddAsync(productId);
+            }
+
+            if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+            {
+                int count = await cartService.GetCountAsync();
+                return Json(new { success = true, cartCount = count, message = $"« {product.Name} » a été ajouté au panier." });
+            }
+
+            TempData["ToastSuccess"] = $"« {product.Name} » a été ajouté au panier.";
+            return Redirect(returnUrl ?? Url.Action("Index", "Product")!);
         }
 
-        // POST: ProductController/Create
+        // GET: /Product/Create
+        public ActionResult Create()
+        {
+            LoadCategorySelectList();
+            return View(new CreateViewModel());
+        }
+
+        // POST: /Product/Create
         [HttpPost]
         [ValidateAntiForgeryToken]
         public ActionResult Create(CreateViewModel model)
         {
             if (ModelState.IsValid)
             {
-                // Enregistrer l'image uploadée et récupérer le nom du fichier
-                string uniqueFileName = ProcessUploadedFile(model.ImagePath);
+                var (ok, fileName, error) = ProcessUploadedFile(model.ImagePath);
+                if (!ok)
+                {
+                    ModelState.AddModelError("ImagePath", error!);
+                    LoadCategorySelectList(model.CategoryId);
+                    return View(model);
+                }
 
-                // Créer le produit avec le nom du fichier image
                 Product product = new Product
                 {
                     Name = model.Name,
                     Price = model.Price,
                     QteStock = model.QteStock,
                     CategoryId = model.CategoryId,
-                    Image = uniqueFileName
+                    Image = fileName!
                 };
 
                 ProductRepository.Add(product);
-                return RedirectToAction("Details", new { id = product.ProductId });
+                TempData["ToastSuccess"] = $"Produit « {product.Name} » créé avec succès.";
+                return RedirectToAction(nameof(Details), new { id = product.ProductId });
             }
 
-            // Recharger les catégories si le modèle est invalide
-            ViewBag.CategoryId = new SelectList(
-                CategRepository.GetAll(),
-                "CategoryId",
-                "CategoryName"
-            );
-
+            LoadCategorySelectList(model.CategoryId);
             return View(model);
         }
 
-        // GET: ProductController/Edit/5
+        // GET: /Product/Edit/5
         public ActionResult Edit(int id)
         {
-            ViewData["Categories"] = CategRepository.GetAll();
             var product = ProductRepository.GetById(id);
-
             if (product == null)
-            {
                 return NotFound();
-            }
 
-            // Charger les catégories
-            ViewBag.CategoryId = new SelectList(
-                CategRepository.GetAll(),
-                "CategoryId",
-                "CategoryName",
-                product.CategoryId
-            );
+            LoadCategorySelectList(product.CategoryId);
 
-            // Mapper le produit vers le EditViewModel
             EditViewModel model = new EditViewModel
             {
                 ProductId = product.ProductId,
@@ -147,130 +190,128 @@ namespace TP2.Controllers
             return View(model);
         }
 
-        // POST: ProductController/Edit/5
+        // POST: /Product/Edit/5
         [HttpPost]
         [ValidateAntiForgeryToken]
         public ActionResult Edit(EditViewModel model)
         {
-            // Recharger les catégories dans tous les cas
-            ViewBag.CategoryId = new SelectList(
-                CategRepository.GetAll(),
-                "CategoryId",
-                "CategoryName",
-                model.CategoryId
-            );
+            LoadCategorySelectList(model.CategoryId);
 
             if (ModelState.IsValid)
             {
                 var product = ProductRepository.GetById(model.ProductId);
                 if (product == null)
-                {
                     return NotFound();
-                }
 
-                // Mettre à jour les propriétés du produit
                 product.Name = model.Name;
                 product.Price = model.Price;
                 product.QteStock = model.QteStock;
                 product.CategoryId = model.CategoryId;
 
-                // Si une nouvelle image est envoyée
                 if (model.ImagePath != null)
                 {
-                    // Supprimer l'ancienne image du disque si elle existe
-                    if (!string.IsNullOrEmpty(model.ExistingImagePath))
+                    var (ok, fileName, error) = ProcessUploadedFile(model.ImagePath);
+                    if (!ok)
                     {
-                        string oldFilePath = Path.Combine(
-                            hostingEnvironment.WebRootPath, "images", model.ExistingImagePath);
-                        if (System.IO.File.Exists(oldFilePath))
-                        {
-                            System.IO.File.Delete(oldFilePath);
-                        }
+                        ModelState.AddModelError("ImagePath", error!);
+                        return View(model);
                     }
 
-                    // Enregistrer la nouvelle image
-                    product.Image = ProcessUploadedFile(model.ImagePath);
+                    // Supprimer l'ancienne image
+                    DeleteImageFile(model.ExistingImagePath);
+                    product.Image = fileName!;
                 }
 
                 ProductRepository.Update(product);
+                TempData["ToastSuccess"] = $"Produit « {product.Name} » mis à jour.";
                 return RedirectToAction(nameof(Index));
             }
 
             return View(model);
         }
 
-        // GET: ProductController/Delete/5
+        // GET: /Product/Delete/5
         public ActionResult Delete(int id)
         {
-            ViewData["Categories"] = CategRepository.GetAll();
             var product = ProductRepository.GetById(id);
-
             if (product == null)
-            {
                 return NotFound();
-            }
-
             return View(product);
         }
 
-        // POST: ProductController/Delete/5
-        [HttpPost]
+        // POST: /Product/Delete/5
+        [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
-        public ActionResult Delete(int id, IFormCollection collection)
+        public ActionResult DeleteConfirmed(int id)
         {
             try
             {
                 var product = ProductRepository.GetById(id);
-
                 if (product == null)
-                {
                     return NotFound();
-                }
 
+                string? imagePath = product.Image;
                 ProductRepository.Delete(id);
+                DeleteImageFile(imagePath);
 
+                TempData["ToastSuccess"] = "Produit supprimé avec succès.";
                 return RedirectToAction(nameof(Index));
             }
-            catch
+            catch (Exception ex)
             {
-                return View();
+                TempData["ToastError"] = $"Erreur lors de la suppression : {ex.Message}";
+                return RedirectToAction(nameof(Index));
             }
         }
 
-        // Recherche par nom de produit ou nom de catégorie
-        [AllowAnonymous]
-        public ActionResult Search(string val)
+        // ── Helpers ────────────────────────────────────────────────────────────
+
+        private void LoadCategorySelectList(int? selectedId = null)
         {
-            ViewData["Categories"] = CategRepository.GetAll();
-            var result = ProductRepository.FindByName(val);
-            return View("Index", result);
+            ViewBag.CategoryId = new SelectList(
+                CategRepository.GetAll(),
+                "CategoryId",
+                "CategoryName",
+                selectedId);
         }
 
-        /// <summary>
-        /// Méthode privée pour traiter l'upload d'un fichier image.
-        /// Génère un nom unique (GUID) et enregistre le fichier dans wwwroot/images.
-        /// </summary>
         [NonAction]
-        private string ProcessUploadedFile(IFormFile file)
+        private (bool ok, string? fileName, string? error) ProcessUploadedFile(IFormFile? file)
         {
-            string uniqueFileName = Guid.NewGuid().ToString() + "_" + file.FileName;
-            string uploadsFolder = Path.Combine(hostingEnvironment.WebRootPath, "images");
+            if (file == null)
+                return (false, null, "Aucun fichier sélectionné.");
 
-            // Créer le dossier images s'il n'existe pas
+            var ext = Path.GetExtension(file.FileName).ToLowerInvariant();
+            if (!AllowedExtensions.Contains(ext))
+                return (false, null, $"Extension non autorisée. Formats acceptés : {string.Join(", ", AllowedExtensions)}");
+
+            if (file.Length > MaxImageSize)
+                return (false, null, "L'image ne doit pas dépasser 2 Mo.");
+
+            string safeName = Path.GetFileName(file.FileName);
+            string uniqueFileName = Guid.NewGuid().ToString() + "_" + safeName;
+            string uploadsFolder = Path.Combine(hostingEnvironment.WebRootPath, "images", "products");
+
             if (!Directory.Exists(uploadsFolder))
-            {
                 Directory.CreateDirectory(uploadsFolder);
-            }
 
             string filePath = Path.Combine(uploadsFolder, uniqueFileName);
 
-            // Utiliser un using pour libérer le FileStream
-            using (var fileStream = new FileStream(filePath, FileMode.Create))
-            {
-                file.CopyTo(fileStream);
-            }
+            using var fileStream = new FileStream(filePath, FileMode.Create);
+            file.CopyTo(fileStream);
 
-            return uniqueFileName;
+            return (true, "products/" + uniqueFileName, null);
+        }
+
+        [NonAction]
+        private void DeleteImageFile(string? imagePath)
+        {
+            if (string.IsNullOrEmpty(imagePath))
+                return;
+
+            string fullPath = Path.Combine(hostingEnvironment.WebRootPath, "images", imagePath);
+            if (System.IO.File.Exists(fullPath))
+                System.IO.File.Delete(fullPath);
         }
     }
 }

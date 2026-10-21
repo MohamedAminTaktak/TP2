@@ -1,7 +1,27 @@
 @{
-    ViewBag.Title = "Not Found";
+    ViewData["Title"] = "Page introuvable (404)";
+    ViewData["HideSidebar"] = true;
 }
-<h1>@ViewBag.ErrorMessage</h1>
-<a asp-action="ListRoles" asp-controller="Admin" class="btn btn-outline-success">
-    Click here to navigate to the roles list
-</a>
+
+<div class="auth-wrapper my-5">
+    <div class="auth-card text-center py-5">
+        <div class="mb-3 d-inline-flex align-items-center justify-content-center" 
+             style="width: 80px; height: 80px; border-radius: 50%; background: #e6f6f3; color: #0f9d8a;">
+            <i class="bi bi-question-circle display-5"></i>
+        </div>
+        <span class="badge bg-primary-subtle text-primary fw-bold px-3 py-1 rounded-pill mb-2">Erreur 404</span>
+        <h1 class="h3 fw-bold text-ink mb-2">Oups ! Page introuvable</h1>
+        <p class="text-muted mb-4 small" style="line-height: 1.6;">
+            La page que vous recherchez semble introuvable, a été déplacée ou n'existe plus.
+        </p>
+
+        <div class="d-grid gap-2">
+            <a asp-controller="Home" asp-action="Index" class="btn btn-primary">
+                <i class="bi bi-house-door me-1"></i> Retour à l'accueil
+            </a>
+            <a asp-controller="Product" asp-action="Index" class="btn btn-outline-secondary">
+                <i class="bi bi-shop me-1"></i> Voir tous les produits
+            </a>
+        </div>
+    </div>
+</div>

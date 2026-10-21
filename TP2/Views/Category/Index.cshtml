@@ -1,41 +1,80 @@
 @model IEnumerable<TP2.Models.Category>
-
 @{
-    ViewData["Title"] = "Index";
+    ViewData["Title"] = "Gestion des Catégories";
 }
 
-<h1>Index</h1>
+<div class="py-2">
+    <!-- Page Header -->
+    <div class="d-flex align-items-center justify-content-between mb-4 pb-2 border-bottom flex-wrap gap-2">
+        <div>
+            <h1 class="h3 fw-bold mb-1">
+                <i class="bi bi-tags text-primary me-2"></i>Gestion des Catégories
+            </h1>
+            <p class="text-muted small mb-0">Organisez les rayons et le catalogue de votre boutique.</p>
+        </div>
+        <a asp-action="Create" class="btn btn-primary">
+            <i class="bi bi-plus-circle me-1"></i> Nouvelle Catégorie
+        </a>
+    </div>
 
-<p>
-    <a asp-action="Create">Create New</a>
-</p>
-<table class="table">
-    <thead>
-        <tr>
-            <th>
-                @Html.DisplayNameFor(model => model.CategoryName)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.Products)
-            </th>
-            <th></th>
-        </tr>
-    </thead>
-    <tbody>
-@foreach (var item in Model) {
-        <tr>
-            <td>
-                @Html.DisplayFor(model => item.CategoryName)
-            </td>
-            <td>
-                @Html.DisplayFor(model => item.Products)
-            </td>
-            <td>
-                <a asp-action="Edit" asp-route-id="@item.CategoryId">Edit</a> |
-                <a asp-action="Details" asp-route-id="@item.CategoryId">Details</a> |
-                <a asp-action="Delete" asp-route-id="@item.CategoryId">Delete</a>
-            </td>
-        </tr>
-}
-    </tbody>
-</table>
+    @if (Model != null && Model.Any())
+    {
+        <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th class="ps-4"># ID</th>
+                            <th>Nom de la catégorie</th>
+                            <th>Nombre de produits</th>
+                            <th class="text-end pe-4">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in Model)
+                        {
+                            int prodCount = item.Products?.Count ?? 0;
+                            <tr>
+                                <td class="ps-4 fw-bold">#@item.CategoryId</td>
+                                <td>
+                                    <div class="fw-bold text-dark">
+                                        <i class="bi bi-tag-fill text-primary me-2"></i>@item.CategoryName
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="badge @(prodCount > 0 ? "bg-primary-subtle text-primary" : "bg-light text-muted border") fw-bold px-3 py-1">
+                                        @prodCount produit(s)
+                                    </span>
+                                </td>
+                                <td class="text-end pe-4">
+                                    <div class="d-flex justify-content-end gap-2">
+                                        <a asp-action="Details" asp-route-id="@item.CategoryId" class="btn btn-sm btn-outline-info" title="Détails">
+                                            <i class="bi bi-eye"></i>
+                                        </a>
+                                        <a asp-action="Edit" asp-route-id="@item.CategoryId" class="btn btn-sm btn-outline-primary" title="Modifier">
+                                            <i class="bi bi-pencil"></i>
+                                        </a>
+                                        <a asp-action="Delete" asp-route-id="@item.CategoryId" class="btn btn-sm btn-outline-danger" title="Supprimer">
+                                            <i class="bi bi-trash"></i>
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="text-center py-5 px-3 bg-white rounded-4 border shadow-sm my-4">
+            <i class="bi bi-tag text-muted display-4 mb-3 d-block"></i>
+            <h4 class="fw-bold mb-2">Aucune catégorie existante</h4>
+            <p class="text-muted mb-4">Créez votre première catégorie pour commencer à classer vos produits.</p>
+            <a asp-action="Create" class="btn btn-primary">
+                <i class="bi bi-plus-circle me-1"></i> Créer une catégorie
+            </a>
+        </div>
+    }
+</div>

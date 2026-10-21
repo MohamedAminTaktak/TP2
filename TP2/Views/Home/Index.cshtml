@@ -1,8 +1,157 @@
-﻿@{
-    ViewData["Title"] = "Home Page";
+@{
+    ViewData["Title"] = "Accueil";
+    var categories = ViewBag.Categories as IEnumerable<TP2.Models.Category> ?? Enumerable.Empty<TP2.Models.Category>();
+    var latestProducts = ViewBag.LatestProducts as IEnumerable<TP2.Models.Product> ?? Enumerable.Empty<TP2.Models.Product>();
 }
 
-<div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://learn.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
-</div>
+<!-- ── Hero Banner ────────────────────────────────────────────── -->
+<section class="hero-banner">
+    <div class="row align-items-center">
+        <div class="col-lg-7">
+            <span class="badge bg-white text-primary fw-bold px-3 py-2 rounded-pill mb-3 shadow-sm">
+                <i class="bi bi-stars text-accent me-1"></i> Nouveau sur TP2 Shop
+            </span>
+            <h1 class="hero-title">Vos courses, livrées chez vous.</h1>
+            <p class="hero-subtitle">
+                Profitez d'un large choix de produits frais, d'épicerie et d'hygiène sélectionnés avec soin au meilleur prix avec une livraison express à domicile.
+            </p>
+            <div class="d-flex flex-wrap gap-3">
+                <a asp-controller="Product" asp-action="Index" class="btn btn-accent btn-lg px-4 py-3">
+                    <i class="bi bi-bag-check-fill me-1"></i> Découvrir les produits
+                </a>
+                <a href="#categoriesSection" class="btn btn-outline-light btn-lg px-4 py-3">
+                    Nos rayons
+                </a>
+            </div>
+        </div>
+        <div class="col-lg-5 d-none d-lg-flex justify-content-center">
+            <!-- Decorative SVG Delivery Illustration -->
+            <svg width="340" height="280" viewBox="0 0 340 280" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="170" cy="140" r="120" fill="white" fill-opacity="0.1"/>
+                <circle cx="170" cy="140" r="85" fill="white" fill-opacity="0.15"/>
+                <!-- Delivery Box -->
+                <rect x="100" y="90" width="140" height="110" rx="14" fill="#ffffff" />
+                <path d="M100 120H240" stroke="#0f9d8a" stroke-width="4"/>
+                <rect x="155" y="90" width="30" height="110" fill="#e6f6f3"/>
+                <!-- Tape -->
+                <rect x="160" y="85" width="20" height="120" rx="2" fill="#ff6b6b"/>
+                <!-- Cart Icon on Box -->
+                <circle cx="170" cy="150" r="18" fill="#0f9d8a"/>
+                <path d="M164 148H167L169 154H175L177 148" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                <circle cx="168" cy="156" r="1" fill="white"/>
+                <circle cx="174" cy="156" r="1" fill="white"/>
+                <!-- Floating Stars/Sparkles -->
+                <path d="M70 70L73 80L83 83L73 86L70 96L67 86L57 83L67 80L70 70Z" fill="#ff6b6b"/>
+                <path d="M270 60L272 67L279 69L272 71L270 78L268 71L261 69L268 67L270 60Z" fill="white"/>
+                <path d="M260 210L263 218L271 220L263 222L260 230L257 222L249 220L257 218L260 210Z" fill="#ff6b6b"/>
+            </svg>
+        </div>
+    </div>
+</section>
+
+<!-- ── Benefit Tiles ─────────────────────────────────────────── -->
+<section class="mb-5">
+    <div class="row g-3">
+        <div class="col-md-4">
+            <div class="benefit-card h-100">
+                <div class="benefit-icon">
+                    <i class="bi bi-truck"></i>
+                </div>
+                <div>
+                    <h5 class="mb-1 fw-bold fs-6">Livraison rapide</h5>
+                    <p class="text-muted small mb-0">Livré chez vous dans les 24h à 48h partout en Tunisie.</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="benefit-card h-100">
+                <div class="benefit-icon">
+                    <i class="bi bi-shield-check"></i>
+                </div>
+                <div>
+                    <h5 class="mb-1 fw-bold fs-6">Paiement sécurisé</h5>
+                    <p class="text-muted small mb-0">Carte bancaire, PayPal ou paiement direct à la livraison.</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="benefit-card h-100">
+                <div class="benefit-icon">
+                    <i class="bi bi-headset"></i>
+                </div>
+                <div>
+                    <h5 class="mb-1 fw-bold fs-6">Support 7j/7</h5>
+                    <p class="text-muted small mb-0">Une équipe d'assistance dédiée à votre écoute en continu.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ── Categories Row ────────────────────────────────────────── -->
+<section class="mb-5" id="categoriesSection">
+    <div class="d-flex align-items-center justify-content-between mb-3">
+        <div>
+            <h2 class="h4 mb-0 fw-bold">Parcourir par Catégorie</h2>
+            <p class="text-muted small mb-0">Accédez directement à vos rayons favoris</p>
+        </div>
+        <a asp-controller="Product" asp-action="Index" class="btn btn-sm btn-outline-primary">
+            Voir tout <i class="bi bi-arrow-right ms-1"></i>
+        </a>
+    </div>
+
+    <div class="row row-cols-2 row-cols-sm-3 row-cols-md-4 row-cols-lg-6 g-3">
+        <div class="col">
+            <a asp-controller="Product" asp-action="Index" class="category-card text-decoration-none h-100">
+                <div class="category-icon-wrapper">
+                    <i class="bi bi-grid"></i>
+                </div>
+                <div class="fw-bold small text-truncate w-100">Tous les rayons</div>
+                <span class="text-muted small">@categories.Sum(c => c.Products?.Count ?? 0) prod.</span>
+            </a>
+        </div>
+        @foreach (var cat in categories)
+        {
+            <div class="col">
+                <a asp-controller="Product" asp-action="Index" asp-route-categoryId="@cat.CategoryId" class="category-card text-decoration-none h-100">
+                    <div class="category-icon-wrapper">
+                        <i class="bi bi-tag-fill"></i>
+                    </div>
+                    <div class="fw-bold small text-truncate w-100" title="@cat.CategoryName">@cat.CategoryName</div>
+                    <span class="text-muted small">@(cat.Products?.Count ?? 0) prod.</span>
+                </a>
+            </div>
+        }
+    </div>
+</section>
+
+<!-- ── Latest Products ───────────────────────────────────────── -->
+<section class="mb-5">
+    <div class="d-flex align-items-center justify-content-between mb-3">
+        <div>
+            <h2 class="h4 mb-0 fw-bold">Derniers Nouveautés</h2>
+            <p class="text-muted small mb-0">Les produits récemment ajoutés à notre catalogue</p>
+        </div>
+        <a asp-controller="Product" asp-action="Index" asp-route-sortBy="recent" class="btn btn-sm btn-outline-primary">
+            Toutes les nouveautés <i class="bi bi-arrow-right ms-1"></i>
+        </a>
+    </div>
+
+    @if (latestProducts.Any())
+    {
+        <div class="row row-cols-1 row-cols-sm-2 row-cols-lg-3 row-cols-xl-4 g-3 g-lg-4">
+            @foreach (var product in latestProducts)
+            {
+                <partial name="_ProductCard" model="product" />
+            }
+        </div>
+    }
+    else
+    {
+        <div class="text-center py-5 bg-white rounded-3 border">
+            <i class="bi bi-box-seam text-muted display-4 mb-3 d-block"></i>
+            <h5 class="fw-bold">Aucun produit disponible pour le moment</h5>
+            <p class="text-muted">Revenez très bientôt pour découvrir notre sélection de produits.</p>
+        </div>
+    }
+</section>

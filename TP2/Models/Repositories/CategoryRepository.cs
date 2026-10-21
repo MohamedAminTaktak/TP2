@@ -1,4 +1,6 @@
-﻿namespace TP2.Models.Repositories
+using Microsoft.EntityFrameworkCore;
+
+namespace TP2.Models.Repositories
 {
     public class CategoryRepository : ICategoryRepository
     {
@@ -16,9 +18,27 @@
                 .ToList();
         }
 
+        public IList<Category> GetAllWithProducts()
+        {
+            return context.Categories
+                .Include(c => c.Products)
+                .OrderBy(c => c.CategoryName)
+                .ToList();
+        }
+
         public Category? GetById(int id)
         {
             return context.Categories.Find(id);
+        }
+
+        public bool HasProducts(int categoryId)
+        {
+            return context.Products.Any(p => p.CategoryId == categoryId);
+        }
+
+        public int ProductCount(int categoryId)
+        {
+            return context.Products.Count(p => p.CategoryId == categoryId);
         }
 
         public void Add(Category c)

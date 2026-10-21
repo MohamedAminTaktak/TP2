@@ -1,8 +1,11 @@
-using System;
 using System.Collections.Generic;
 
 namespace TP2.Models.Help
 {
+    /// <summary>
+    /// Panier côté serveur (singleton statique — conservé pour compatibilité
+    /// mais plus utilisé directement : CartService gère la session).
+    /// </summary>
     public class ListeCart
     {
         public List<Item> Items { get; private set; } = new();
@@ -12,27 +15,17 @@ namespace TP2.Models.Help
 
         public void AddItem(Product prod)
         {
-            Boolean iswhat = false;
-            // Create a new item to add to the cart
             foreach (Item a in Items)
             {
                 if (a.Prod.ProductId == prod.ProductId)
                 {
                     a.quantite++;
-                    iswhat = true;
                     return;
                 }
             }
-            if (iswhat == false)
-            {
-                Item newItem = new Item(prod);
-                newItem.quantite = 1;
-                Items.Add(newItem);
-            }
-        }
-
-        public void setToNUll()
-        {
+            Item newItem = new Item(prod);
+            newItem.quantite = 1;
+            Items.Add(newItem);
         }
 
         public void SetLessOneItem(Product prod)
@@ -74,7 +67,7 @@ namespace TP2.Models.Help
 
         public void RemoveItem(Product prod)
         {
-            Item t = null;
+            Item? t = null;
             foreach (Item a in Items)
             {
                 if (a.Prod.ProductId == prod.ProductId)
@@ -88,12 +81,12 @@ namespace TP2.Models.Help
             }
         }
 
-        public float GetSubTotal()
+        public decimal GetSubTotal()
         {
-            float subTotal = 0;
+            decimal subTotal = 0;
             foreach (Item i in Items)
                 subTotal += i.TotalPrice;
-            return (float)subTotal;
+            return subTotal;
         }
     }
 }
